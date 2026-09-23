@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   resources,
   type ResourceItem,
@@ -5,6 +6,8 @@ import {
 } from "../api/resources";
 function cell(item: ResourceItem, field: keyof ResourceItem) {
   const value = item[field];
+  if (["isHiddenByAdmin", "isSystem", "isPublic"].includes(field))
+    return value ? "Có" : "Không";
   if (field === "isPro")
     return (
       <span
@@ -44,9 +47,11 @@ function cell(item: ResourceItem, field: keyof ResourceItem) {
 export function ResourceTable({
   resource,
   items,
+  renderActions,
 }: {
   resource: ResourceKey;
   items: ResourceItem[];
+  renderActions?: (item: ResourceItem) => ReactNode;
 }) {
   const config = resources[resource];
   if (!items.length)
@@ -75,6 +80,9 @@ export function ResourceTable({
                 {column.label}
               </th>
             ))}
+            {renderActions && (
+              <th className="px-6 py-4 font-medium">Thao tác</th>
+            )}
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -82,13 +90,16 @@ export function ResourceTable({
             <tr key={item.id} className="hover:bg-slate-50/70">
               <td className="px-6 py-5 text-slate-400">#{item.id}</td>
               <td className="max-w-xs wrap-break-word px-6 py-5 font-semibold text-slate-700">
-                {item.name}
+                {item.name || item.term}
               </td>
               {config.columns.map((column) => (
                 <td key={column.field} className="px-6 py-5 text-slate-500">
                   {cell(item, column.field)}
                 </td>
               ))}
+              {renderActions && (
+                <td className="px-6 py-5">{renderActions(item)}</td>
+              )}
             </tr>
           ))}
         </tbody>

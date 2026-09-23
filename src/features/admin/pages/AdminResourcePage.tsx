@@ -1,5 +1,5 @@
 import type { FormEvent } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { PageHeading } from '../../../components/ui/PageHeading'
 import { QueryState } from '../../../components/ui/QueryState'
 import { useApiQuery } from '../../../hooks/useApiQuery'
@@ -10,39 +10,113 @@ import {
   type ResourceKey,
 } from '../api/resources'
 import { ResourceTable } from '../components/ResourceTable'
+import { ResourceActions } from '../components/ResourceActions'
 export function AdminResourcePage({ resource }: { resource: ResourceKey }) {
   const [params, setParams] = useSearchParams()
+  const location = useLocation()
+  const wordSetId = Number(params.get('wordSetId'))
+  const validWordSet = Number.isSafeInteger(wordSetId) && wordSetId > 0
+  const parent = useApiQuery<ResourceItem>(
+    resource === 'words' && validWordSet
+      ? `/admin/word-sets/${wordSetId}`
+      : null,
+  )
+  const readonlyWords =
+    resource === 'words' && (!parent.data || !!parent.data.creator)
   const keyword = params.get('keyword') || ''
   const rawPage = Number(params.get('page') || 1)
   const page = Number.isSafeInteger(rawPage) && rawPage > 0 ? rawPage : 1
   const query = new URLSearchParams({
     page: String(page),
     limit: '10',
+    ...(resource === 'words' && validWordSet
+      ? { wordSetId: String(wordSetId) }
+      : {}),
     ...(keyword ? { keyword } : {}),
   })
   const { data, error, loading, retry } = useApiQuery<Page<ResourceItem>>(
-    `/admin/${resource}?${query}`,
+    resource === 'words' && !validWordSet
+      ? null
+      : `/admin/${resource}?${query}`,
   )
   const config = resources[resource]
+  const extra: Record<string, string> =
+    resource === 'words' && validWordSet ? { wordSetId: String(wordSetId) } : {}
+  if (resource === 'words' && !validWordSet)
+    return (
+      <>
+        <PageHeading
+          title="Từ vựng"
+          description="Chọn một bộ từ để quản lý từ vựng."
+        />
+        <Link to="/admin/word-sets" className="text-link">
+          Đến danh sách bộ từ
+        </Link>
+      </>
+    )
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const search = String(new FormData(event.currentTarget).get('keyword') || '')
-    setParams(search.trim() ? { keyword: search.trim() } : {})
+    const search = String(
+      new FormData(event.currentTarget).get('keyword') || '',
+    )
+    setParams({
+      ...extra,
+      ...(search.trim() ? { keyword: search.trim() } : {}),
+    })
   }
   function changePage(next: number) {
-    setParams({ ...(keyword ? { keyword } : {}), page: String(next) })
+    setParams({ ...extra, ...(keyword ? { keyword } : {}), page: String(next) })
   }
   return (
     <>
       <PageHeading
         title={config.title}
-        description={config.description}
+        description={
+          resource === 'words'
+            ? `Bộ từ: ${parent.data?.name || `#${wordSetId}`}`
+            : config.description
+        }
         action={
-          <button className="secondary" onClick={retry} disabled={loading}>
-            Làm mới
-          </button>
+          <div className="flex gap-3">
+            {resource !== 'folders' && !readonlyWords && (
+              <Link
+                className="secondary text-blue-600"
+                to={`/admin/${resource}/new${resource === 'words' ? `?wordSetId=${wordSetId}` : ''}`}
+              >
+                Thêm mới
+              </Link>
+            )}
+            <button className="secondary" onClick={retry} disabled={loading}>
+              Làm mới
+            </button>
+          </div>
         }
       />
+      {location.state?.notice && (
+        <p
+          role="status"
+          className="mb-5 rounded-lg bg-emerald-50 p-4 text-emerald-700"
+        >
+          {location.state.notice}
+        </p>
+      )}
+      {resource === 'words' && (
+        <div className="mb-5">
+          <Link to="/admin/word-sets" className="text-link text-sm">
+            Về danh sách bộ từ
+          </Link>
+          <QueryState
+            loading={parent.loading}
+            error={parent.error}
+            retry={parent.retry}
+          />
+          {parent.data?.creator && (
+            <p className="mt-3 text-sm text-slate-500">
+              Bộ từ cá nhân: chỉ xem từ vựng.
+            </p>
+          )}
+        </div>
+      )}
       <section className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white">
         <form
           key={keyword}
@@ -67,7 +141,7 @@ export function AdminResourcePage({ resource }: { resource: ResourceKey }) {
               type="button"
               className="text-link text-sm"
               onClick={() => {
-                setParams({})
+                setParams(extra)
               }}
             >
               Xóa bộ lọc
@@ -86,7 +160,23 @@ export function AdminResourcePage({ resource }: { resource: ResourceKey }) {
         ) : (
           data && (
             <>
-              <ResourceTable resource={resource} items={data.items} />
+              <ResourceTable
+                resource={resource}
+                items={data.items}
+                renderActions={(item) => (
+                  <ResourceActions
+                    resource={resource}
+                    item={item}
+                    wordSetId={resource === 'words' ? wordSetId : undefined}
+                    readOnly={readonlyWords}
+                    onChanged={() => {
+                      if (data.items.length === 1 && page > 1)
+                        changePage(page - 1)
+                      else retry()
+                    }}
+                  />
+                )}
+              />
               <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-6 py-4 text-sm">
                 <p className="text-slate-500">
                   Trang {page} / {Math.max(1, data.pagination.totalPage)}

@@ -1,12 +1,16 @@
-import { Link, Navigate, Outlet, Route, Routes } from 'react-router-dom'
-import { AuthProvider } from '../features/admin/auth/AuthProvider'
-import { AdminAuthLayout } from '../features/admin/components/AdminAuthLayout'
-import { AdminLayout } from '../features/admin/components/AdminLayout'
-import { AdminAuthPage } from '../features/admin/pages/AdminAuthPage'
-import { AdminDashboardPage } from '../features/admin/pages/AdminDashboardPage'
-import { AdminProfilePage } from '../features/admin/pages/AdminProfilePage'
-import { AdminResourcePage } from '../features/admin/pages/AdminResourcePage'
-import { resourceKeys } from '../features/admin/api/resources'
+import { Fragment } from "react";
+import { AdminEditorPage } from "../features/admin/pages/AdminEditorPage";
+import { AdminPermissionsPage } from "../features/admin/pages/AdminPermissionsPage";
+import { AdminFolderPage } from "../features/admin/pages/AdminFolderPage";
+import { Link, Navigate, Outlet, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "../features/admin/auth/AuthProvider";
+import { AdminAuthLayout } from "../features/admin/components/AdminAuthLayout";
+import { AdminLayout } from "../features/admin/components/AdminLayout";
+import { AdminAuthPage } from "../features/admin/pages/AdminAuthPage";
+import { AdminDashboardPage } from "../features/admin/pages/AdminDashboardPage";
+import { AdminProfilePage } from "../features/admin/pages/AdminProfilePage";
+import { AdminResourcePage } from "../features/admin/pages/AdminResourcePage";
+import { resourceKeys } from "../features/admin/api/resources";
 export function AppRoutes() {
   return (
     <Routes>
@@ -41,12 +45,42 @@ export function AppRoutes() {
             path="change-email"
             element={<AdminAuthPage mode="change-email" />}
           />
+          <Route path="permissions" element={<AdminPermissionsPage />} />
+          <Route
+            path="roles/:id/permissions"
+            element={<AdminPermissionsPage />}
+          />
           {resourceKeys.map((resource) => (
-            <Route
-              key={resource}
-              path={resource}
-              element={<AdminResourcePage key={resource} resource={resource} />}
-            />
+            <Fragment key={resource}>
+              {resource !== "folders" && (
+                <Route
+                  path={`${resource}/new`}
+                  element={
+                    <AdminEditorPage
+                      key={`${resource}-new`}
+                      resource={resource}
+                    />
+                  }
+                />
+              )}
+              <Route
+                path={`${resource}/:id`}
+                element={
+                  resource === "folders" ? (
+                    <AdminFolderPage />
+                  ) : (
+                    <AdminEditorPage key={resource} resource={resource} />
+                  )
+                }
+              />
+              <Route
+                key={resource}
+                path={resource}
+                element={
+                  <AdminResourcePage key={resource} resource={resource} />
+                }
+              />
+            </Fragment>
           ))}
         </Route>
       </Route>
@@ -62,5 +96,5 @@ export function AppRoutes() {
         }
       />
     </Routes>
-  )
+  );
 }

@@ -37,7 +37,7 @@ Token lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và x
 ```powershell
 pnpm build
 pnpm lint
-node --test tests/api.test.mjs
+node --test tests/api.test.mjs tests/admin-editor.test.mjs
 ```
 
 Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhập sai/đúng; reload trang; hết hạn access token; đổi email/mật khẩu; đăng xuất rồi truy cập lại `/admin`; gửi email reset và mở link. Các bài test API client dùng mock, không gửi email hoặc thay đổi tài khoản thật.
@@ -55,7 +55,25 @@ Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhậ
 - `src/hooks/useApiQuery.ts`: tải dữ liệu, làm mới và bỏ qua kết quả request cũ khi chuyển trang.
 - `src/lib/api.ts`: HTTP client và xử lý token admin hiện tại.
 
-`/admin` là dashboard; tài khoản chuyển sang `/admin/profile`. Các trang `/admin/users`, `/admin/categories`, `/admin/learning-paths`, `/admin/word-sets` hiện hỗ trợ xem danh sách, tìm kiếm và phân trang. Thống kê lấy từ `pagination.totalRecord`; lỗi quyền truy cập được hiển thị riêng, không giả định bằng 0. Chưa triển khai CRUD ở các trang danh sách.
+`/admin` là dashboard; tài khoản ở `/admin/profile`. Thống kê lấy từ `pagination.totalRecord`; lỗi quyền truy cập được hiển thị riêng, không giả định bằng 0.
+
+## Chức năng quản trị
+
+| Đường dẫn | Chức năng |
+| --- | --- |
+| `/admin/users` | Danh sách, tìm kiếm, phân trang, tạo, xem/sửa, xóa mềm học viên |
+| `/admin/categories` | CRUD danh mục |
+| `/admin/learning-paths` | CRUD lộ trình; chọn danh mục, độ khó, hiển thị, thứ tự |
+| `/admin/word-sets` | CRUD bộ từ; chọn lộ trình khi tạo, cấu hình Pro, mở danh sách từ |
+| `/admin/words?wordSetId=ID` | Danh sách và CRUD từng từ, phiên âm, từ loại, nghĩa, ví dụ, audio URL, ghi chú |
+| `/admin/folders` | Tìm kiếm, xem chi tiết/bộ từ bên trong, ẩn/hiện thư mục |
+| `/admin/roles` | CRUD vai trò, xem và thay thế các quyền qua trang phân quyền |
+| `/admin/permissions` | Danh sách quyền nhóm theo module |
+| `/admin/profile` | Sửa họ tên/số điện thoại, tải avatar JPEG/PNG/WebP tối đa 5 MB |
+
+Các thao tác xóa và thay đổi quyền có hộp thoại xác nhận. Chọn danh mục/lộ trình hỗ trợ tìm kiếm và phân trang. Backend quyết định quyền thực thi; FE hiển thị thông báo khi bị từ chối. API hiện không có endpoint cung cấp toàn bộ quyền của admin đang đăng nhập, nên các nút không được ẩn theo quyền từng tài khoản.
+
+Giới hạn theo API: user chỉ có trạng thái `ACTIVE`; không sửa mã vai trò sau khi tạo; không sửa/xóa vai trò hệ thống; không sửa bộ từ cá nhân hoặc từ vựng bên trong qua API admin; bộ từ có từ vựng phải xóa hết từ trước khi xóa bộ. Backend không có API admin tạo/xóa thư mục. Khi thêm từ, FE gửi một phần tử trong mảng `words` theo contract batch của backend.
 
 Phần user là bước tiếp theo: thêm layout công khai chung cho landing page và login, sau đăng nhập dùng lại `DashboardLayout` với menu user. Không tạo sẵn file rỗng hoặc route user chưa có chức năng. `/` tạm chuyển về `/admin`. Khi thêm auth user, cần tách session/token theo actor trong API client, không dùng phiên admin cho user.
 

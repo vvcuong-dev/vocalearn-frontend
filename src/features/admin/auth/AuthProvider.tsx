@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from "react";
 import {
   api,
   ApiError,
@@ -6,67 +6,67 @@ import {
   loginAdmin,
   setTokens,
   type Admin,
-} from '../../../lib/api'
-import { AuthContext } from './context'
+} from "../../../lib/api";
+import { AuthContext } from "./context";
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [admin, setAdmin] = useState<Admin | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
+  const [admin, setAdmin] = useState<Admin | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   async function reload() {
-    setAdmin(await api<Admin>('/admin/profile', 'GET', undefined, true))
+    setAdmin(await api<Admin>("/admin/profile", "GET", undefined, true));
   }
   useEffect(() => {
-    let active = true
-    const expired = () => setAdmin(null)
-    window.addEventListener('auth-expired', expired)
+    let active = true;
+    const expired = () => setAdmin(null);
+    window.addEventListener("auth-expired", expired);
     async function restore() {
       try {
         if (hasSession()) {
           const profile = await api<Admin>(
-            '/admin/profile',
-            'GET',
+            "/admin/profile",
+            "GET",
             undefined,
             true,
-          )
-          if (active) setAdmin(profile)
+          );
+          if (active) setAdmin(profile);
         }
       } catch (err) {
         if (err instanceof ApiError && [401, 403, 404].includes(err.status))
-          setTokens(null)
+          setTokens(null);
         else if (active)
           setError(
-            err instanceof Error ? err.message : 'Không thể tải tài khoản.',
-          )
+            err instanceof Error ? err.message : "Không thể tải tài khoản.",
+          );
       } finally {
-        if (active) setLoading(false)
+        if (active) setLoading(false);
       }
     }
-    void restore()
+    void restore();
     return () => {
-      active = false
-      window.removeEventListener('auth-expired', expired)
-    }
-  }, [])
+      active = false;
+      window.removeEventListener("auth-expired", expired);
+    };
+  }, []);
   async function login(email: string, password: string) {
-    await loginAdmin(email, password)
+    await loginAdmin(email, password);
     try {
-      await reload()
+      await reload();
     } catch (err) {
-      setTokens(null)
-      throw err
+      setTokens(null);
+      throw err;
     }
   }
   async function logout() {
-    await api('/admin/auth/logout', 'POST', undefined, true)
-    setTokens(null)
-    setAdmin(null)
+    await api("/admin/auth/logout", "POST", undefined, true);
+    setTokens(null);
+    setAdmin(null);
   }
   if (loading)
     return (
       <main className="grid min-h-screen place-items-center" role="status">
         Đang kiểm tra phiên đăng nhập…
       </main>
-    )
+    );
   if (error)
     return (
       <main className="mx-auto mt-24 max-w-md space-y-5 p-6">
@@ -77,17 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         <button
           className="text-link"
           onClick={() => {
-            setTokens(null)
-            setError('')
+            setTokens(null);
+            setError("");
           }}
         >
           Về đăng nhập
         </button>
       </main>
-    )
+    );
   return (
     <AuthContext.Provider value={{ admin, login, logout, reload }}>
       {children}
     </AuthContext.Provider>
-  )
+  );
 }

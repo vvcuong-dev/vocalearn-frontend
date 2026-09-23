@@ -24,7 +24,11 @@ export function QueryState({
       >
         <p>{error}</p>
         {retry && (
-          <button className="mt-3 font-semibold underline" onClick={retry}>
+          <button
+            type="button"
+            className="mt-3 font-semibold underline"
+            onClick={retry}
+          >
             Thử lại
           </button>
         )}

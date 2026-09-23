@@ -1,37 +1,38 @@
-import { useEffect, useState } from 'react'
-import { api } from '../lib/api'
+import { useEffect, useState } from "react";
+import { api } from "../lib/api";
 
-export function useApiQuery<T>(path: string) {
-  const [version, setVersion] = useState(0)
-  const key = `${path}:${version}`
+export function useApiQuery<T>(path: string | null) {
+  const [version, setVersion] = useState(0);
+  const key = `${path}:${version}`;
   const [result, setResult] = useState<{
-    key: string
-    data?: T
-    error?: string
-  } | null>(null)
+    key: string;
+    data?: T;
+    error?: string;
+  } | null>(null);
   useEffect(() => {
-    let active = true
-    api<T>(path, 'GET', undefined, true).then(
+    if (!path) return;
+    let active = true;
+    api<T>(path, "GET", undefined, true).then(
       (data) => {
-        if (active) setResult({ key, data })
+        if (active) setResult({ key, data });
       },
       (error) => {
         if (active)
           setResult({
             key,
             error:
-              error instanceof Error ? error.message : 'Không thể tải dữ liệu.',
-          })
+              error instanceof Error ? error.message : "Không thể tải dữ liệu.",
+          });
       },
-    )
+    );
     return () => {
-      active = false
-    }
-  }, [path, key])
+      active = false;
+    };
+  }, [path, key]);
   return {
     data: result?.key === key ? result.data : undefined,
     error: result?.key === key ? result.error : undefined,
-    loading: result?.key !== key,
+    loading: path !== null && result?.key !== key,
     retry: () => setVersion((value) => value + 1),
-  }
+  };
 }

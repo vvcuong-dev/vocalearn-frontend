@@ -1,7 +1,7 @@
-import { useEffect, useState, type ReactNode } from 'react'
-import { Header } from '../components/dashboard/Header'
-import { Sidebar, type NavigationItem } from '../components/dashboard/Sidebar'
-import { Icon } from '../components/ui/Icon'
+import { useEffect, useState, type ReactNode } from "react";
+import { Header } from "../components/dashboard/Header";
+import { Sidebar, type NavigationItem } from "../components/dashboard/Sidebar";
+import { Icon } from "../components/ui/Icon";
 export function DashboardLayout({
   children,
   items,
@@ -13,25 +13,25 @@ export function DashboardLayout({
   onLogout,
   loggingOut,
 }: {
-  children: ReactNode
-  items: NavigationItem[]
-  home: string
-  label: string
-  name: string
-  title: string
-  profilePath: string
-  onLogout: () => void
-  loggingOut: boolean
+  children: ReactNode;
+  items: NavigationItem[];
+  home: string;
+  label: string;
+  name: string;
+  title: string;
+  profilePath: string;
+  onLogout: () => void;
+  loggingOut: boolean;
 }) {
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(false);
   useEffect(() => {
-    if (!open) return
+    if (!open) return;
     const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
-  }, [open])
+      if (event.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [open]);
   return (
     <div className="min-h-svh">
       <a
@@ -49,7 +49,7 @@ export function DashboardLayout({
       )}
       <aside
         id="dashboard-sidebar"
-        className={`${open ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-40 w-64 flex-col border-r border-slate-200/70 bg-white lg:flex`}
+        className={`${open ? "flex" : "hidden"} fixed inset-y-0 left-0 z-40 w-64 flex-col border-r border-slate-200/70 bg-white lg:flex`}
       >
         <button
           aria-label="Đóng menu"
@@ -73,7 +73,7 @@ export function DashboardLayout({
             className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
           >
             <Icon name="logout" />
-            {loggingOut ? 'Đang đăng xuất…' : 'Đăng xuất'}
+            {loggingOut ? "Đang đăng xuất…" : "Đăng xuất"}
           </button>
         </div>
       </aside>
@@ -92,5 +92,5 @@ export function DashboardLayout({
         </footer>
       </div>
     </div>
-  )
+  );
 }

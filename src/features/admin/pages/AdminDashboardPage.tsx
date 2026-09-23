@@ -26,7 +26,7 @@ export function AdminDashboardPage() {
         }
       />
       <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        {resourceKeys.map((resource) => (
+        {resourceKeys.filter(key => ['users', 'categories', 'learning-paths', 'word-sets'].includes(key)).map((resource) => (
           <StatCard key={resource} resource={resource} />
         ))}
       </div>

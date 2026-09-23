@@ -1,12 +1,12 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react";
 export function PageHeading({
   title,
   description,
   action,
 }: {
-  title: string
-  description: string
-  action?: ReactNode
+  title: string;
+  description: string;
+  action?: ReactNode;
 }) {
   return (
     <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
@@ -18,5 +18,5 @@ export function PageHeading({
       </div>
       {action}
     </div>
-  )
+  );
 }

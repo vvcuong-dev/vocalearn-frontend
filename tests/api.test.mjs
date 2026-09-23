@@ -158,3 +158,20 @@ test('malformed login response is rejected before sending profile or refresh req
   assert.equal(c.hasSession(), false)
   assert.equal(calls, 1)
 })
+
+test('avatar upload preserves multipart body without forcing JSON content type', async () => {
+  const c = await client()
+  c.setTokens({ accessToken: 'access', refreshToken: 'refresh' })
+  const body = new FormData()
+  body.set('avatar', new Blob(['image'], { type: 'image/png' }), 'avatar.png')
+  globalThis.fetch = async (url, options) => {
+    assert.ok(url.endsWith('/admin/profile/avatar'))
+    assert.equal(options.body, body)
+    assert.equal(options.headers['Content-Type'], undefined)
+    assert.equal(options.headers.Authorization, 'Bearer access')
+    return response(200, { id: 1 })
+  }
+  assert.deepEqual(await c.api('/admin/profile/avatar', 'POST', body, true), {
+    id: 1,
+  })
+})

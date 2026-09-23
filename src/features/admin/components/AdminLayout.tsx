@@ -1,24 +1,24 @@
-import { useState } from 'react'
-import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { DashboardLayout } from '../../../layouts/DashboardLayout'
-import { QueryState } from '../../../components/ui/QueryState'
-import { useAuth } from '../auth/context'
-import { adminNavigation } from '../navigation'
+import { useState } from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { DashboardLayout } from "../../../layouts/DashboardLayout";
+import { QueryState } from "../../../components/ui/QueryState";
+import { useAuth } from "../auth/context";
+import { adminNavigation } from "../navigation";
 export function AdminLayout() {
-  const { admin, logout } = useAuth()
-  const { pathname } = useLocation()
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  if (!admin) return <Navigate to="/admin/login" replace />
+  const { admin, logout } = useAuth();
+  const { pathname } = useLocation();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  if (!admin) return <Navigate to="/admin/login" replace />;
   async function signOut() {
-    setBusy(true)
-    setError('')
+    setBusy(true);
+    setError("");
     try {
-      await logout()
+      await logout();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Không thể đăng xuất.')
+      setError(err instanceof Error ? err.message : "Không thể đăng xuất.");
     } finally {
-      setBusy(false)
+      setBusy(false);
     }
   }
   return (
@@ -29,7 +29,7 @@ export function AdminLayout() {
       name={admin.name}
       title={
         adminNavigation.find((item) => item.to === pathname)?.label ||
-        'Quản trị'
+        "Quản trị"
       }
       profilePath="/admin/profile"
       onLogout={signOut}
@@ -42,5 +42,5 @@ export function AdminLayout() {
       )}
       <Outlet />
     </DashboardLayout>
-  )
+  );
 }
