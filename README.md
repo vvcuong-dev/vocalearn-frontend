@@ -37,7 +37,7 @@ Token lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và x
 ```powershell
 pnpm build
 pnpm lint
-node --test tests/api.test.mjs tests/admin-editor.test.mjs
+node --test tests/api.test.mjs tests/admin-editor.test.mjs tests/user-editor.test.mjs
 ```
 
 Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhập sai/đúng; reload trang; hết hạn access token; đổi email/mật khẩu; đăng xuất rồi truy cập lại `/admin`; gửi email reset và mở link. Các bài test API client dùng mock, không gửi email hoặc thay đổi tài khoản thật.
@@ -75,5 +75,30 @@ Các thao tác xóa và thay đổi quyền có hộp thoại xác nhận. Chọ
 
 Giới hạn theo API: user chỉ có trạng thái `ACTIVE`; không sửa mã vai trò sau khi tạo; không sửa/xóa vai trò hệ thống; không sửa bộ từ cá nhân hoặc từ vựng bên trong qua API admin; bộ từ có từ vựng phải xóa hết từ trước khi xóa bộ. Backend không có API admin tạo/xóa thư mục. Khi thêm từ, FE gửi một phần tử trong mảng `words` theo contract batch của backend.
 
-Phần user là bước tiếp theo: thêm layout công khai chung cho landing page và login, sau đăng nhập dùng lại `DashboardLayout` với menu user. Không tạo sẵn file rỗng hoặc route user chưa có chức năng. `/` tạm chuyển về `/admin`. Khi thêm auth user, cần tách session/token theo actor trong API client, không dùng phiên admin cho user.
+## Landing page và khu vực người học
+
+Mở `/` để xem landing page. Các màn `/login`, `/register`, `/forgot-password`, `/reset-password?token=...` dùng chung header/footer với landing page. Đăng ký thành công hiển thị liên kết đăng nhập, đúng response đăng ký không có token của backend.
+
+Sau đăng nhập, `/learn` sử dụng `DashboardLayout` với menu học tập và màu xanh lá riêng:
+
+- `/learn/explore`: lộ trình theo danh mục và thông tin chi tiết lộ trình.
+- `/learn/library`: hiển thị chung thư mục và bộ từ độc lập từ `/me/library`, hỗ trợ tìm kiếm, phân trang và tạo mới.
+- `/learn/folders/:id`: bộ từ trong thư mục; chủ sở hữu có thể đổi tên, xóa, chuyển công khai/riêng tư.
+- `/learn/word-sets/:id`: danh sách từ, tìm kiếm, phát audio URL khi có, flashcard và CRUD từ thuộc sở hữu của mình.
+- `/learn/profile`, `/learn/change-email`, `/learn/change-password`: thông tin cá nhân, avatar và bảo mật.
+
+Flashcard dùng các từ trên trang hiện tại, không lưu lịch sử học, điểm số hay tiến độ vì backend chưa có API tương ứng. Bộ từ chính thức và thư mục công khai của người khác chỉ được xem; backend vẫn kiểm tra quyền với mọi request.
+
+`src/features/user` chứa các trang, auth, component và payload riêng. HTTP client chia hai phiên `vocalearn.admin.session` và `vocalearn.user.session`, mỗi phiên có refresh token, hàng đợi refresh và sự kiện hết hạn riêng. Đăng xuất user không xóa phiên admin.
+
+Frontend sử dụng API backend hiện có. Trang thư mục cá nhân lọc bộ từ từ `/me/word-sets` theo thư mục; không có trang danh sách bộ từ riêng. API hiện chưa cung cấp danh sách bộ từ trong lộ trình hoặc thư mục của người khác, nên FE chưa hiển thị các danh sách này.
+
+Cấu hình trong `.env` backend để email reset mở đúng frontend:
+
+```dotenv
+CLIENT_RESET_PASSWORD_URL=http://localhost:5173/reset-password
+ADMIN_RESET_PASSWORD_URL=http://localhost:5173/admin/reset-password
+```
+
+Khởi động lại backend sau khi cập nhật API hoặc biến môi trường. Cần database, Redis, mail worker và Cloudinary hoạt động để kiểm tra đầy đủ đăng nhập, email reset và avatar.
 
