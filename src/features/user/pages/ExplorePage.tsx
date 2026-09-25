@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { PageHeading } from "../../../components/ui/PageHeading";
 import { QueryState } from "../../../components/ui/QueryState";
 import { useUserQuery } from "../useUserQuery";
+import { LearningPathCard } from "../components/LearningPathCard";
 import type { PathGroup, LearningPath } from "../types";
 export function ExplorePage() {
   const query = useUserQuery<PathGroup[]>(
@@ -19,22 +20,33 @@ export function ExplorePage() {
         <QueryState {...query} />
       ) : (
         <>
-          <label htmlFor="category" className="sr-only">
-            Danh mục
-          </label>
-          <select
-            id="category"
-            className="field mb-6 max-w-xs"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+          <div
+            className="mb-7 flex flex-wrap gap-2"
+            role="group"
+            aria-label="Danh mục lộ trình"
           >
-            <option value="">Tất cả danh mục</option>
-            {query.data?.map((group) => (
-              <option key={group.category.id} value={group.category.id}>
-                {group.category.name}
-              </option>
+            {[
+              { id: "", name: "Tất cả" },
+              ...(query.data || []).map((group) => ({
+                id: String(group.category.id),
+                name: group.category.name,
+              })),
+            ].map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={category === item.id}
+                onClick={() => setCategory(item.id)}
+                className={`rounded-full border-2 px-4 py-2 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 ${
+                  category === item.id
+                    ? "border-green-600 bg-green-600 text-white"
+                    : "border-[#e8dfd3] bg-white text-slate-800 hover:border-green-500"
+                }`}
+              >
+                {item.name}
+              </button>
             ))}
-          </select>
+          </div>
           {!query.data?.length && (
             <p className="text-slate-500">Chưa có lộ trình được xuất bản.</p>
           )}
@@ -43,35 +55,25 @@ export function ExplorePage() {
               (group) => !category || String(group.category.id) === category,
             )
             .map((group) => (
-              <section key={group.category.id} className="mb-9">
-                <h2 className="mb-4 text-xl font-bold">
-                  {group.category.name}
-                </h2>
-                <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+              <section
+                key={group.category.id}
+                className="mb-9 min-w-0"
+                aria-labelledby={`category-${group.category.id}`}
+              >
+                <div className="mb-4 flex items-center gap-3 border-b border-[#e8dfd3] pb-3">
+                  <h2
+                    id={`category-${group.category.id}`}
+                    className="text-lg font-bold"
+                  >
+                    {group.category.name}
+                  </h2>
+                  <span className="rounded-full bg-[#f3eee7] px-3 py-1 text-xs text-slate-500">
+                    {group.totalCount} lộ trình
+                  </span>
+                </div>
+                <div className="learning-path-row flex snap-x snap-proximity gap-3 overflow-x-auto p-1 pb-4">
                   {group.learningPaths.map((path) => (
-                    <Link
-                      key={path.id}
-                      to={`/learn/paths/${path.id}`}
-                      className="overflow-hidden rounded-2xl border border-slate-200 bg-white hover:border-teal-400"
-                    >
-                      {path.thumbnail ? (
-                        <img
-                          src={path.thumbnail}
-                          alt=""
-                          className="h-36 w-full object-cover"
-                        />
-                      ) : (
-                        <div className="grid h-36 place-items-center bg-teal-50 text-5xl font-bold text-teal-200">
-                          Aa
-                        </div>
-                      )}
-                      <div className="p-5">
-                        <p className="mb-2 text-xs text-teal-700">
-                          Độ khó {path.difficulty}/5
-                        </p>
-                        <h3 className="font-bold">{path.name}</h3>
-                      </div>
-                    </Link>
+                    <LearningPathCard key={path.id} path={path} />
                   ))}
                 </div>
               </section>

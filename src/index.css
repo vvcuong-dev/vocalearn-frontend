@@ -2,6 +2,10 @@
 @theme {
   --color-brand: #4880ff;
 }
+.learning-path-row {
+  scrollbar-color: #22a83e #f3eee7;
+  scrollbar-width: thin;
+}
 body {
   margin: 0;
   font-family: "Segoe UI", sans-serif;
