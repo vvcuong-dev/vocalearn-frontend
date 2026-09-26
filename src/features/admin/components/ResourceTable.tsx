@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import { CategoryName } from "./CategoryName";
 import {
   resources,
   type ResourceItem,
   type ResourceKey,
 } from "../api/resources";
 function cell(item: ResourceItem, field: keyof ResourceItem) {
+  if (field === "categoryId") return <CategoryName id={item.categoryId} />;
   const value = item[field];
   if (["isHiddenByAdmin", "isSystem", "isPublic"].includes(field))
     return value ? "Có" : "Không";

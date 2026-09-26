@@ -1,7 +1,4 @@
-import {
-  LandingPage,
-  UserAuthPage,
-} from "./LazyPages";
+import { LandingPage, UserAuthPage } from "./LazyPages";
 import { PublicLayout } from "../features/user/components/PublicLayout";
 import { Route } from "react-router-dom";
 

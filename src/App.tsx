@@ -5,6 +5,8 @@ import { router } from "./routes/router";
 
 export default function App() {
   return (
-    <Suspense fallback={<Loading fullPage />}><RouterProvider router={router} /></Suspense>
+    <Suspense fallback={<Loading fullPage />}>
+      <RouterProvider router={router} />
+    </Suspense>
   );
 }

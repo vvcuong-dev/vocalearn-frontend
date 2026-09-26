@@ -15,20 +15,38 @@ export interface ValidationField {
 }
 export type FormValues = Record<string, string | boolean>;
 export function serverField(error: unknown, available: string[]) {
-  if (!(error instanceof Error) || !("code" in error) || typeof error.code !== "string") return;
+  if (
+    !(error instanceof Error) ||
+    !("code" in error) ||
+    typeof error.code !== "string"
+  )
+    return;
   const fields: Record<string, string[]> = {
-    EMAIL_ALREADY_EXISTS: ["newEmail", "email"], EMAIL_SAME_AS_OLD: ["newEmail", "email"], EMAIL_INVALID: ["newEmail", "email"],
-    OLD_PASSWORD_INCORRECT: ["oldPassword", "password"], PASSWORD_INCORRECT: ["password"],
-    PASSWORD_TOO_WEAK: ["newPassword", "password"], PASSWORD_TOO_LONG: ["newPassword", "password"],
-    PHONE_INVALID: ["phone"], NAME_TOO_SHORT: ["name"], NAME_TOO_LONG: ["name"],
-    AVATAR_INVALID: ["avatar"], INVALID_FILE_TYPE: ["avatar"], FILE_TOO_LARGE: ["avatar"],
-    ROLE_ALREADY_EXISTS: ["code"], CATEGORY_ALREADY_EXISTS: ["name"], LEARNING_PATH_DUPLICATED: ["name"],
+    EMAIL_ALREADY_EXISTS: ["newEmail", "email"],
+    EMAIL_SAME_AS_OLD: ["newEmail", "email"],
+    EMAIL_INVALID: ["newEmail", "email"],
+    OLD_PASSWORD_INCORRECT: ["oldPassword", "password"],
+    PASSWORD_INCORRECT: ["password"],
+    PASSWORD_TOO_WEAK: ["newPassword", "password"],
+    PASSWORD_TOO_LONG: ["newPassword", "password"],
+    PHONE_INVALID: ["phone"],
+    NAME_TOO_SHORT: ["name"],
+    NAME_TOO_LONG: ["name"],
+    AVATAR_INVALID: ["avatar"],
+    INVALID_FILE_TYPE: ["avatar"],
+    FILE_TOO_LARGE: ["avatar"],
+    ROLE_ALREADY_EXISTS: ["code"],
+    CATEGORY_ALREADY_EXISTS: ["name"],
+    LEARNING_PATH_DUPLICATED: ["name"],
   };
   const name = fields[error.code]?.find((field) => available.includes(field));
   return name ? { name, message: error.message } : undefined;
 }
 export function fieldsSchema(fields: ValidationField[]) {
-  const shape: Record<string, z.ZodType<string | boolean, string | boolean>> = {};
+  const shape: Record<
+    string,
+    z.ZodType<string | boolean, string | boolean>
+  > = {};
   for (const field of fields) {
     if (field.type === "checkbox") {
       shape[field.name] = z.boolean();

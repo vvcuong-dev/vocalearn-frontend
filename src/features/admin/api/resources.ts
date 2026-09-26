@@ -10,6 +10,7 @@ export interface Page<T> {
 }
 // List columns only use the common and optional fields exposed by these four APIs.
 export interface ResourceItem {
+  categoryId?: number
   term?: string
   meaning?: string
   code?: string
@@ -101,6 +102,7 @@ export const resources: Record<ResourceKey, ResourceConfig> = {
     icon: 'route',
     color: 'bg-emerald-50 text-emerald-500',
     columns: [
+      { label: 'Danh mục', field: 'categoryId' },
       { label: 'Độ khó', field: 'difficulty' },
       { label: 'Trạng thái', field: 'isActive' },
     ],
