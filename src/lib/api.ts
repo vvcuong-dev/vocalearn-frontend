@@ -99,7 +99,13 @@ async function request<T>(
   return result.data as T;
 }
 
-function createClient(key: string, authPath: string, expiredEvent: string) {
+function createClient(
+  key: string,
+  authPath: string,
+  expiredEvent: string,
+  allowRemember = false,
+) {
+  let persistent = false;
   let tokens: Tokens | null = readTokens();
   let refreshPromise: Promise<Tokens> | null = null;
   function isTokenPair(value: unknown): value is Tokens {
@@ -114,35 +120,51 @@ function createClient(key: string, authPath: string, expiredEvent: string) {
     );
   }
   function readTokens(): Tokens | null {
-    try {
-      const value = JSON.parse(sessionStorage.getItem(key) || "null");
-      if (isTokenPair(value)) return value;
-      sessionStorage.removeItem(key);
-      return null;
-    } catch {
-      sessionStorage.removeItem(key);
-      return null;
+    for (const remember of allowRemember ? [false, true] : [false]) {
+      try {
+        const storage = remember ? localStorage : sessionStorage;
+        const value = JSON.parse(storage.getItem(key) || "null");
+        if (isTokenPair(value)) {
+          persistent = remember;
+          return value;
+        }
+        storage.removeItem(key);
+      } catch {
+        // Storage can be unavailable in restricted browser contexts.
+      }
     }
+    return null;
   }
-  function setTokens(value: Tokens | null) {
+  function setTokens(value: Tokens | null, remember = persistent) {
     if (value !== null && !isTokenPair(value)) {
       throw new Error(
         "Máy chủ trả về token không hợp lệ. Vui lòng đăng nhập lại.",
       );
     }
+    const keep = allowRemember && remember;
+    if (value) {
+      (keep ? localStorage : sessionStorage).setItem(
+        key,
+        JSON.stringify(value),
+      );
+      if (keep) sessionStorage.removeItem(key);
+      else if (allowRemember) localStorage.removeItem(key);
+    } else {
+      sessionStorage.removeItem(key);
+      if (allowRemember) localStorage.removeItem(key);
+    }
     tokens = value;
-    if (value) sessionStorage.setItem(key, JSON.stringify(value));
-    else sessionStorage.removeItem(key);
+    persistent = value !== null && keep;
   }
   function hasSession() {
     return tokens !== null;
   }
-  async function login(email: string, password: string) {
+  async function login(email: string, password: string, remember = false) {
     const result = await api<{ tokens: Tokens }>(`${authPath}/login`, "POST", {
       email,
       password,
     });
-    setTokens(result?.tokens);
+    setTokens(result?.tokens, remember);
   }
 
   async function api<T>(
@@ -215,5 +237,6 @@ export const userClient = createClient(
   "vocalearn.user.session",
   "/auth",
   "user-auth-expired",
+  true,
 );
 export const userApi = userClient.api;

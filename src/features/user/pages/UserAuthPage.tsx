@@ -40,6 +40,7 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
       : "/learn";
   const [params] = useSearchParams();
   const [busy, setBusy] = useState(false);
+  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const token = params.get("token") || "";
@@ -47,7 +48,15 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
     resolver: zodResolver(authSchema(mode, false)),
     mode: mode === "login" ? "onSubmit" : "onTouched",
     reValidateMode: "onChange",
-    defaultValues: { email: "", newEmail: "", password: "", oldPassword: "", name: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      email: "",
+      newEmail: "",
+      password: "",
+      oldPassword: "",
+      name: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
   const newPassword = [
     "register",
@@ -64,7 +73,7 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
     setBusy(true);
     try {
       if (mode === "login") {
-        await login(values.email.trim(), values.password);
+        await login(values.email.trim(), values.password, remember);
         navigate(destination, { replace: true });
         return;
       }
@@ -114,9 +123,16 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
       }
       methods.reset();
     } catch (err) {
-      const field = serverField(err, Object.keys(authSchema(mode, false).shape));
+      const field = serverField(
+        err,
+        Object.keys(authSchema(mode, false).shape),
+      );
       if (field) {
-        methods.setError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        methods.setError(
+          field.name,
+          { type: "server", message: field.message },
+          { shouldFocus: true },
+        );
         return;
       }
 
@@ -156,71 +172,83 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
         ) : (
           !(success && ["reset-password", "register"].includes(mode)) && (
             <FormProvider {...methods}>
-          <form noValidate onSubmit={methods.handleSubmit(submit)}>
-              <fieldset disabled={busy} className="space-y-5">
-                {mode === "register" && (
-                  <FormField name="name" label="Họ tên" />
-                )}
-                {[
-                  "login",
-                  "register",
-                  "forgot-password",
-                  "change-email",
-                ].includes(mode) && (
-                  <FormField
-                    name="email"
-                    label={mode === "change-email" ? "Email mới" : "Email"}
-                    type="email"
-                  />
-                )}
-                {["login", "change-password", "change-email"].includes(
-                  mode,
-                ) && (
-                  <FormField
-                    name="password"
-                    label="Mật khẩu hiện tại"
-                    type="password"
-                  />
-                )}
-                {newPassword && (
-                  <>
+              <form noValidate onSubmit={methods.handleSubmit(submit)}>
+                <fieldset disabled={busy} className="space-y-5">
+                  {mode === "register" && (
+                    <FormField name="name" label="Họ tên" />
+                  )}
+                  {[
+                    "login",
+                    "register",
+                    "forgot-password",
+                    "change-email",
+                  ].includes(mode) && (
                     <FormField
-                      name="newPassword"
-                      label="Mật khẩu mới"
-                      type="password"
-                      fresh
+                      name="email"
+                      label={mode === "change-email" ? "Email mới" : "Email"}
+                      type="email"
                     />
-                    <p className="text-xs leading-5 text-slate-500">
-                      8–72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
-                    </p>
+                  )}
+                  {["login", "change-password", "change-email"].includes(
+                    mode,
+                  ) && (
                     <FormField
-                      name="confirmPassword"
-                      label="Xác nhận mật khẩu"
+                      name="password"
+                      label="Mật khẩu hiện tại"
                       type="password"
-                      fresh
                     />
-                  </>
-                )}
-                {mode === "login" && (
-                  <Link
-                    to="/forgot-password"
-                    className="text-link block text-right text-sm"
-                  >
-                    Quên mật khẩu?
-                  </Link>
-                )}
-                <button className="primary" disabled={busy}>
-                  {busy
-                    ? "Đang xử lý…"
-                    : mode === "login"
-                      ? "Đăng nhập"
-                      : mode === "register"
-                        ? "Tạo tài khoản"
-                        : "Xác nhận"}
-                </button>
-              </fieldset>
-            </form>
-          </FormProvider>
+                  )}
+                  {newPassword && (
+                    <>
+                      <FormField
+                        name="newPassword"
+                        label="Mật khẩu mới"
+                        type="password"
+                        fresh
+                      />
+                      <p className="text-xs leading-5 text-slate-500">
+                        8–72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc
+                        biệt.
+                      </p>
+                      <FormField
+                        name="confirmPassword"
+                        label="Xác nhận mật khẩu"
+                        type="password"
+                        fresh
+                      />
+                    </>
+                  )}
+                  {mode === "login" && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={remember}
+                        onChange={(event) => setRemember(event.target.checked)}
+                        className="h-4 w-4 accent-teal-700"
+                      />
+                      Ghi nhớ đăng nhập trên thiết bị này
+                    </label>
+                  )}
+                  {mode === "login" && (
+                    <Link
+                      to="/forgot-password"
+                      className="text-link block text-right text-sm"
+                    >
+                      Quên mật khẩu?
+                    </Link>
+                  )}
+                  <button className="primary" disabled={busy}>
+                    {busy
+                      ? "Đang xử lý…"
+                      : mode === "login"
+                        ? "Đăng nhập"
+                        : mode === "register"
+                          ? "Tạo tài khoản"
+                          : "Xác nhận"}
+                  </button>
+                </fieldset>
+              </form>
+            </FormProvider>
           )
         )}
         {!mode.startsWith("change") && (

@@ -17,12 +17,17 @@ const js = ts.transpileModule(source, {
   },
 }).outputText;
 let id = 0;
-async function client() {
+async function client(saved = new Map()) {
   const data = new Map();
   globalThis.sessionStorage = {
     getItem: (k) => data.get(k) ?? null,
     setItem: (k, v) => data.set(k, v),
     removeItem: (k) => data.delete(k),
+  };
+  globalThis.localStorage = {
+    getItem: (k) => saved.get(k) ?? null,
+    setItem: (k, v) => saved.set(k, v),
+    removeItem: (k) => saved.delete(k),
   };
   globalThis.window = new EventTarget();
   return import(
@@ -239,4 +244,60 @@ test("user login consumes nested token response and authenticates user requests"
   assert.deepEqual(await c.userApi("/me/profile", "GET", undefined, true), {
     id: 2,
   });
+});
+
+test("remembered user session survives browser restart and persists rotated tokens", async () => {
+  const saved = new Map();
+  const c = await client(saved);
+  globalThis.fetch = async () => response(200, { tokens: { accessToken: "old", refreshToken: "refresh" } });
+  await c.userClient.login("user@example.com", "Pass@123", true);
+  assert.equal(sessionStorage.getItem("vocalearn.user.session"), null);
+  const reopened = await client(saved);
+  assert.equal(reopened.userClient.hasSession(), true);
+  assert.equal(reopened.hasSession(), false);
+  globalThis.fetch = async (url, options) => {
+    if (url.endsWith("refresh-token")) {
+      assert.equal(JSON.parse(options.body).refreshToken, "refresh");
+      return response(200, { accessToken: "new", refreshToken: "rotated" });
+    }
+    return options.headers.Authorization === "Bearer new" ? response(200, { id: 2 }) : response(401, {});
+  };
+  assert.deepEqual(await reopened.userApi("/me/profile", "GET", undefined, true), { id: 2 });
+  assert.equal(JSON.parse(saved.get("vocalearn.user.session")).refreshToken, "rotated");
+});
+
+test("unchecked remember removes previous persistence and tab session does not survive restart", async () => {
+  const saved = new Map();
+  const c = await client(saved);
+  globalThis.fetch = async () => response(200, { tokens: { accessToken: "a", refreshToken: "r" } });
+  await c.userClient.login("user@example.com", "Pass@123", true);
+  await c.userClient.login("user@example.com", "Pass@123", false);
+  assert.equal(saved.has("vocalearn.user.session"), false);
+  assert.ok(sessionStorage.getItem("vocalearn.user.session"));
+  assert.equal((await client(saved)).userClient.hasSession(), false);
+});
+
+test("logout clears remembered user tokens without clearing admin session", async () => {
+  const saved = new Map();
+  const c = await client(saved);
+  c.setTokens({ accessToken: "admin", refreshToken: "admin-r" });
+  c.userClient.setTokens({ accessToken: "user", refreshToken: "user-r" }, true);
+  c.userClient.setTokens(null);
+  assert.equal(saved.has("vocalearn.user.session"), false);
+  assert.equal(sessionStorage.getItem("vocalearn.user.session"), null);
+  assert.equal(c.hasSession(), true);
+  assert.equal((await client(saved)).userClient.hasSession(), false);
+});
+
+test("expired remembered refresh is removed but network failure preserves it", async () => {
+  const saved = new Map();
+  const c = await client(saved);
+  c.userClient.setTokens({ accessToken: "old", refreshToken: "r" }, true);
+  globalThis.fetch = async () => { throw new TypeError("offline"); };
+  await assert.rejects(c.userApi("/me/profile", "GET", undefined, true));
+  assert.equal(saved.has("vocalearn.user.session"), true);
+  globalThis.fetch = async () => response(401, {});
+  await assert.rejects(c.userApi("/me/profile", "GET", undefined, true));
+  assert.equal(saved.has("vocalearn.user.session"), false);
+  assert.equal(c.userClient.hasSession(), false);
 });

@@ -46,8 +46,8 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("user-auth-expired", expired);
     };
   }, []);
-  async function login(email: string, password: string) {
-    await userClient.login(email, password);
+  async function login(email: string, password: string, remember = false) {
+    await userClient.login(email, password, remember);
     try {
       await reload();
     } catch (err) {

@@ -30,7 +30,7 @@ Khi deploy, đổi cả hai URL tương ứng domain thực tế, cấu hình `V
 - `/admin/change-password`, `/admin/change-email`: cập nhật thông tin đăng nhập.
 - Đăng xuất gọi API để thu hồi phiên; lỗi mạng được hiển thị để thử lại.
 
-Token lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và xóa khi đóng tab. API client tự refresh khi gặp 401, gom các yêu cầu refresh đồng thời, thử lại request một lần; refresh hết hạn đưa về đăng nhập. Không có đăng ký admin công khai. Backend vẫn là nơi kiểm tra quyền thực tế.
+Token admin lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và xóa khi đóng tab. API client tự refresh khi gặp 401, gom các yêu cầu refresh đồng thời trong cùng tab, thử lại request một lần; refresh hết hạn đưa về đăng nhập. Không có đăng ký admin công khai. Backend vẫn là nơi kiểm tra quyền thực tế.
 
 ## Kiểm tra
 
@@ -92,6 +92,8 @@ Sau đăng nhập, `/learn` sử dụng `DashboardLayout` với menu học tập
 Flashcard dùng các từ trên trang hiện tại, không lưu lịch sử học, điểm số hay tiến độ vì backend chưa có API tương ứng. Bộ từ chính thức và thư mục công khai của người khác chỉ được xem; backend vẫn kiểm tra quyền với mọi request.
 
 `src/features/user` chứa các trang, auth, component và payload riêng. HTTP client chia hai phiên `vocalearn.admin.session` và `vocalearn.user.session`, mỗi phiên có refresh token, hàng đợi refresh và sự kiện hết hạn riêng. Đăng xuất user không xóa phiên admin.
+
+Màn đăng nhập user có “Ghi nhớ đăng nhập trên thiết bị này”, mặc định bật: token lưu trong `localStorage` và được khôi phục khi mở lại web. Bỏ chọn sẽ chỉ lưu trong `sessionStorage`. Token được xoay qua `/auth/refresh-token` vẫn lưu theo lựa chọn ban đầu; đăng xuất hoặc refresh token không còn hợp lệ sẽ xóa phiên đã lưu. Thời hạn phiên do backend quyết định qua `JWT_REFRESH_EXPIRES_IN`, FE không kéo dài token đã hết hạn.
 
 Frontend sử dụng API backend hiện có. Trang thư mục cá nhân lọc bộ từ từ `/me/word-sets` theo thư mục; không có trang danh sách bộ từ riêng. API hiện chưa cung cấp danh sách bộ từ trong lộ trình hoặc thư mục của người khác, nên FE chưa hiển thị các danh sách này.
 
