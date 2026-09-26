@@ -1,3 +1,4 @@
+import { Loading } from "../../../components/ui/Loading";
 import { useEffect, useState, type ReactNode } from "react";
 import {
   userApi as api,
@@ -59,12 +60,7 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
     userClient.setTokens(null);
     setUser(null);
   }
-  if (loading)
-    return (
-      <main className="grid min-h-screen place-items-center" role="status">
-        Đang kiểm tra phiên đăng nhập…
-      </main>
-    );
+  if (loading) return <Loading fullPage />;
   if (error)
     return (
       <main className="mx-auto mt-24 max-w-md space-y-5 p-6">

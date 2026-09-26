@@ -1,4 +1,9 @@
-import { useState, type FormEvent } from 'react'
+import { serverField } from "../../../lib/form-validation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { fieldsSchema, valuesToFormData, type FormValues } from "../../../lib/form-validation";
+import { FieldError } from "../../../components/ui/FieldError";
+import { useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../../../lib/api'
 import { useApiQuery } from '../../../hooks/useApiQuery'
@@ -55,6 +60,16 @@ function Editor({
   wordSetId?: number
   readOnly?: boolean
 }) {
+  const fields = editorFields(resource, !!id);
+  const { register, handleSubmit, setError: setFieldError, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(fieldsSchema(fields)),
+    mode: "onTouched",
+    reValidateMode: "onChange",
+    defaultValues: Object.fromEntries(fields.map((field) => {
+      const value = initial[field.name] ?? field.defaultValue;
+      return [field.name, String(field.type) === "checkbox" ? Boolean(value) : String(value ?? "")];
+    })),
+  });
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -64,8 +79,7 @@ function Editor({
     readOnly ||
     (resource === 'roles' && initial.isSystem === true) ||
     (resource === 'word-sets' && !!initial.creator)
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submit(values: FormValues) {
     if (busy) return
     setBusy(true)
     setError('')
@@ -73,7 +87,7 @@ function Editor({
       const payload = resourcePayload(
         resource,
         editing,
-        new FormData(event.currentTarget),
+        valuesToFormData(values),
         wordSetId,
       )
       await api(
@@ -86,6 +100,12 @@ function Editor({
         state: { notice: editing ? 'Đã lưu thay đổi.' : 'Đã tạo thành công.' },
       })
     } catch (err) {
+      const field = serverField(err, fields.map((item) => item.name));
+      if (field) {
+        setFieldError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        return;
+      }
+
       setError(err instanceof Error ? err.message : 'Không thể lưu dữ liệu.')
     } finally {
       setBusy(false)
@@ -118,14 +138,16 @@ function Editor({
             <QueryState error={error} />
           </div>
         )}
-        <form onSubmit={submit}>
+        <form noValidate onSubmit={handleSubmit(submit)}>
           <fieldset disabled={busy || locked} className="space-y-5">
-            {editorFields(resource, editing).map((field) => {
+            {fields.map((field) => {
               const value = initial[field.name] ?? field.defaultValue
               if (field.relation)
                 return (
                   <RelationSelect
                     key={field.name}
+                    registration={register(field.name)}
+                    validationError={errors[field.name]?.message}
                     name={field.name}
                     label={field.label}
                     resource={field.relation}
@@ -139,7 +161,7 @@ function Editor({
                     className="flex items-center gap-3 text-sm font-semibold"
                   >
                     <input
-                      name={field.name}
+                      {...register(field.name)}
                       type="checkbox"
                       defaultChecked={Boolean(value)}
                       className="h-4 w-4 accent-brand"
@@ -149,7 +171,9 @@ function Editor({
                 )
               const common = {
                 id: field.name,
-                name: field.name,
+                ...register(field.name),
+                "aria-invalid": !!errors[field.name],
+                "aria-describedby": errors[field.name] ? `${field.name}-error` : undefined,
                 required: field.required,
                 defaultValue:
                   typeof value === 'string' || typeof value === 'number'
@@ -194,6 +218,7 @@ function Editor({
                       }
                     />
                   )}
+                  <FieldError name={field.name} message={errors[field.name]?.message} />
                 </div>
               )
             })}

@@ -1,4 +1,4 @@
-﻿import { test } from "node:test";
+import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import ts from "typescript";
@@ -6,7 +6,10 @@ import ts from "typescript";
 const source = readFileSync(
   new URL("../src/lib/api.ts", import.meta.url),
   "utf8",
-).replace("import.meta.env.VITE_API_URL", "undefined");
+).replace(
+  "import.meta.env.VITE_API_URL",
+  JSON.stringify("http://localhost:3000/api"),
+);
 const js = ts.transpileModule(source, {
   compilerOptions: {
     target: ts.ScriptTarget.ES2022,
@@ -102,10 +105,11 @@ test("maps backend validation errors to Vietnamese", async () => {
   const c = await client();
   globalThis.fetch = async () =>
     response(400, { errors: [{ errorCode: "EMAIL_INVALID" }] });
-  await assert.rejects(
-    c.api("/admin/auth/login", "POST", {}),
-    /Email không hợp lệ/,
-  );
+  await assert.rejects(c.api("/admin/auth/login", "POST", {}), (error) => {
+    assert.match(error.message, /Email không hợp lệ/);
+    assert.equal(error.code, "EMAIL_INVALID");
+    return true;
+  });
 });
 
 test("login stores nested backend tokens and authenticates profile then refresh", async () => {

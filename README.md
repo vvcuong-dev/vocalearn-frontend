@@ -37,7 +37,7 @@ Token lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và x
 ```powershell
 pnpm build
 pnpm lint
-node --test tests/api.test.mjs tests/admin-editor.test.mjs tests/user-editor.test.mjs
+pnpm test
 ```
 
 Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhập sai/đúng; reload trang; hết hạn access token; đổi email/mật khẩu; đăng xuất rồi truy cập lại `/admin`; gửi email reset và mở link. Các bài test API client dùng mock, không gửi email hoặc thay đổi tài khoản thật.
@@ -45,13 +45,15 @@ Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhậ
 ## Cấu trúc frontend
 
 - `src/App.tsx`: khởi tạo browser router.
-- `src/routes/AppRoutes.tsx`: khai báo route; provider phiên admin chỉ bao quanh `/admin`.
+- `src/routes/router.tsx`: khởi tạo `createBrowserRouter`; cấu hình chia thành `publicRoutes.tsx`, `userRoutes.tsx`, `adminRoutes.tsx`. Provider phiên admin chỉ bao quanh `/admin`; các trang được tải khi truy cập.
 - `src/features/admin/auth`: context, provider, form và cấu hình auth admin.
 - `src/features/admin/pages`: dashboard, auth, tài khoản và trang danh sách.
 - `src/features/admin/components`: layout admin, thẻ tổng quan, bảng dữ liệu.
 - `src/features/admin/api`: kiểu dữ liệu và cấu hình các danh sách theo API backend.
 - `src/layouts/DashboardLayout.tsx`: khung sidebar/header sau đăng nhập, nhận menu và thông tin tài khoản qua props để tái sử dụng cho user.
 - `src/components`: component giao diện dùng chung, không phụ thuộc phiên admin.
+- `src/components/ui/Loading.tsx`: loading dùng `react-spinners`, dùng chung cho tải trang, dữ liệu và khôi phục phiên.
+- `src/lib/form-validation.ts`: schema Zod cho auth, CRUD, hồ sơ, avatar và ánh xạ lỗi API về từng trường. Form dùng React Hook Form: login `onSubmit`, các form nhập liệu khác `onTouched`; lỗi hiện dưới ô nhập. Các ô tìm kiếm không cần schema riêng.
 - `src/hooks/useApiQuery.ts`: tải dữ liệu, làm mới và bỏ qua kết quả request cũ khi chuyển trang.
 - `src/lib/api.ts`: HTTP client và xử lý token admin hiện tại.
 

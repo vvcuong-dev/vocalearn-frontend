@@ -1,4 +1,8 @@
-import { useState, type SubmitEvent } from "react";
+import { serverField } from "../../../lib/form-validation";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authSchema, type FormValues } from "../../../lib/form-validation";
+import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context";
 import { api } from "../../../lib/api";
@@ -12,32 +16,18 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(authSchema(mode, true)),
+    mode: mode === "login" ? "onSubmit" : "onTouched",
+    reValidateMode: "onChange",
+    defaultValues: { email: "", newEmail: "", password: "", oldPassword: "", name: "", newPassword: "", confirmPassword: "" },
+  });
   const newPassword = mode === "reset-password" || mode === "change-password";
-  async function submit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(data: FormValues) {
     if (busy) return;
-    const form = event.currentTarget;
-    const values = Object.fromEntries(new FormData(form)) as Record<
-      string,
-      string
-    >;
+    const values = data as Record<string, string>;
     setError("");
     setSuccess("");
-    if (newPassword && values.newPassword !== values.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
-      return;
-    }
-    if (
-      newPassword &&
-      !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s]).{8,72}$/.test(
-        values.newPassword,
-      )
-    ) {
-      setError(
-        "Mật khẩu cần 8–72 ký tự, có chữ hoa, chữ thường, số và ký tự đặc biệt.",
-      );
-      return;
-    }
     setBusy(true);
     try {
       if (mode === "login") {
@@ -82,8 +72,14 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
         );
         await reload();
       }
-      form.reset();
+      methods.reset();
     } catch (err) {
+      const field = serverField(err, Object.keys(authSchema(mode, true).shape));
+      if (field) {
+        methods.setError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        return;
+      }
+
       setError(
         err instanceof Error ? err.message : "Có lỗi xảy ra. Vui lòng thử lại.",
       );
@@ -124,7 +120,8 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
         </p>
       ) : (
         !(mode === "reset-password" && success) && (
-          <form onSubmit={submit} className="space-y-5">
+          <FormProvider {...methods}>
+          <form noValidate onSubmit={methods.handleSubmit(submit)} className="space-y-5">
             <fieldset disabled={busy} className="space-y-5">
               {(mode === "login" || mode === "forgot-password") && (
                 <FormField name="email" label="Email" type="email" />
@@ -177,6 +174,7 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
               </button>
             </fieldset>
           </form>
+          </FormProvider>
         )
       )}
       {mode === "login" ? (

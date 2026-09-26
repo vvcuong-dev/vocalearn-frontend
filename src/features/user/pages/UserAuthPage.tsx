@@ -1,4 +1,8 @@
-﻿import { useState, type FormEvent } from "react";
+import { serverField } from "../../../lib/form-validation";
+import { FormProvider, useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authSchema, type FormValues } from "../../../lib/form-validation";
+import { useState } from "react";
 import {
   Link,
   Navigate,
@@ -39,6 +43,12 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const token = params.get("token") || "";
+  const methods = useForm<FormValues>({
+    resolver: zodResolver(authSchema(mode, false)),
+    mode: mode === "login" ? "onSubmit" : "onTouched",
+    reValidateMode: "onChange",
+    defaultValues: { email: "", newEmail: "", password: "", oldPassword: "", name: "", newPassword: "", confirmPassword: "" },
+  });
   const newPassword = [
     "register",
     "reset-password",
@@ -46,20 +56,11 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
   ].includes(mode);
   if (user && ["login", "register"].includes(mode))
     return <Navigate to={destination} replace />;
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submit(data: FormValues) {
     if (busy) return;
-    const form = event.currentTarget;
-    const values = Object.fromEntries(new FormData(form)) as Record<
-      string,
-      string
-    >;
+    const values = data as Record<string, string>;
     setError("");
     setSuccess("");
-    if (newPassword && values.newPassword !== values.confirmPassword) {
-      setError("Mật khẩu xác nhận không khớp.");
-      return;
-    }
     setBusy(true);
     try {
       if (mode === "login") {
@@ -74,7 +75,7 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
           password: values.newPassword,
         });
         setSuccess("Đăng ký thành công! Hãy đăng nhập để bắt đầu.");
-        form.reset();
+        methods.reset();
         return;
       }
       if (mode === "forgot-password") {
@@ -111,8 +112,14 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
         setSuccess("Đã đổi email đăng nhập.");
         await reload();
       }
-      form.reset();
+      methods.reset();
     } catch (err) {
+      const field = serverField(err, Object.keys(authSchema(mode, false).shape));
+      if (field) {
+        methods.setError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        return;
+      }
+
       setError(err instanceof Error ? err.message : "Có lỗi xảy ra.");
     } finally {
       setBusy(false);
@@ -148,26 +155,11 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
           <p role="alert">Link thiếu token. Vui lòng yêu cầu link mới.</p>
         ) : (
           !(success && ["reset-password", "register"].includes(mode)) && (
-            <form onSubmit={submit}>
+            <FormProvider {...methods}>
+          <form noValidate onSubmit={methods.handleSubmit(submit)}>
               <fieldset disabled={busy} className="space-y-5">
                 {mode === "register" && (
-                  <div>
-                    <label
-                      htmlFor="name"
-                      className="mb-2 block text-sm font-semibold"
-                    >
-                      Họ tên
-                    </label>
-                    <input
-                      id="name"
-                      name="name"
-                      className="field"
-                      required
-                      minLength={5}
-                      maxLength={50}
-                      autoComplete="name"
-                    />
-                  </div>
+                  <FormField name="name" label="Họ tên" />
                 )}
                 {[
                   "login",
@@ -228,6 +220,7 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
                 </button>
               </fieldset>
             </form>
+          </FormProvider>
           )
         )}
         {!mode.startsWith("change") && (

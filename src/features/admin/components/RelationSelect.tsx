@@ -1,4 +1,6 @@
-﻿import { useState } from "react";
+import type { UseFormRegisterReturn } from "react-hook-form";
+import { FieldError } from "../../../components/ui/FieldError";
+import { useState } from "react";
 import { useApiQuery } from "../../../hooks/useApiQuery";
 import type { Page, ResourceItem, ResourceKey } from "../api/resources";
 import { QueryState } from "../../../components/ui/QueryState";
@@ -7,11 +9,15 @@ export function RelationSelect({
   label,
   resource,
   initial,
+  registration,
+  validationError,
 }: {
   name: string;
   label: string;
   resource: ResourceKey;
   initial?: number;
+  registration: UseFormRegisterReturn;
+  validationError?: string;
 }) {
   const [keyword, setKeyword] = useState("");
   const [page, setPage] = useState(1);
@@ -37,9 +43,11 @@ export function RelationSelect({
       <select
         required
         id={name}
-        name={name}
+        {...registration}
+        aria-invalid={!!validationError}
+        aria-describedby={validationError ? `${name}-error` : undefined}
         value={selected}
-        onChange={(e) => setSelected(e.target.value)}
+        onChange={(e) => { setSelected(e.target.value); void registration.onChange(e); }}
         className="field"
       >
         <option value="">Chọn {label.toLowerCase()}</option>
@@ -53,6 +61,7 @@ export function RelationSelect({
           </option>
         ))}
       </select>
+      <FieldError name={name} message={validationError} />
       <QueryState loading={loading} error={error} retry={retry} />
       {data && data.pagination.totalPage > 1 && (
         <div className="flex items-center gap-3 text-xs">

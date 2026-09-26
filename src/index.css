@@ -6,6 +6,10 @@
   scrollbar-color: #22a83e #f3eee7;
   scrollbar-width: thin;
 }
+.field[aria-invalid="true"] {
+  border-color: #dc2626;
+  outline-color: #dc2626;
+}
 body {
   margin: 0;
   font-family: "Segoe UI", sans-serif;

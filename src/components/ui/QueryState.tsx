@@ -1,3 +1,4 @@
+import { Loading } from "./Loading";
 export function QueryState({
   loading,
   error,
@@ -7,15 +8,7 @@ export function QueryState({
   error?: string;
   retry?: () => void;
 }) {
-  if (loading)
-    return (
-      <div
-        className="rounded-xl border border-slate-200 bg-white p-8 text-center text-sm text-slate-500"
-        role="status"
-      >
-        Đang tải dữ liệu…
-      </div>
-    );
+  if (loading) return <Loading />;
   if (error)
     return (
       <div

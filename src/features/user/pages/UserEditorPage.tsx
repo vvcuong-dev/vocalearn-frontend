@@ -1,4 +1,9 @@
-﻿import { useState, type FormEvent } from "react";
+import { serverField } from "../../../lib/form-validation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { fieldsSchema, valuesToFormData, type FormValues } from "../../../lib/form-validation";
+import { FieldError } from "../../../components/ui/FieldError";
+import { useState } from "react";
 import {
   Link,
   useNavigate,
@@ -73,6 +78,16 @@ function Editor({
   initial: Record<string, unknown>;
   parentId?: number;
 }) {
+  const fields = fieldsFor(resource, !!id);
+  const { register, handleSubmit, setError: setFieldError, formState: { errors } } = useForm<FormValues>({
+    resolver: zodResolver(fieldsSchema(fields)),
+    mode: "onTouched",
+    reValidateMode: "onChange",
+    defaultValues: Object.fromEntries(fields.map((field) => {
+      const value = initial[field.name];
+      return [field.name, String(value ?? "")];
+    })),
+  });
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -84,8 +99,7 @@ function Editor({
         : resource === "word-sets" && parentId
           ? `/learn/folders/${parentId}`
           : "/learn/library";
-  async function save(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function save(values: FormValues) {
     if (busy) return;
     setBusy(true);
     setError("");
@@ -96,13 +110,19 @@ function Editor({
         userPayload(
           resource,
           !!id,
-          new FormData(event.currentTarget),
+          valuesToFormData(values),
           parentId,
         ),
         true,
       );
       navigate(resource === "words" ? back : `/learn/${resource}/${result.id}`);
     } catch (err) {
+      const field = serverField(err, fields.map((item) => item.name));
+      if (field) {
+        setFieldError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        return;
+      }
+
       setError(err instanceof Error ? err.message : "Không thể lưu nội dung.");
     } finally {
       setBusy(false);
@@ -124,7 +144,7 @@ function Editor({
         }
       />
       <form
-        onSubmit={save}
+        noValidate onSubmit={handleSubmit(save)}
         className="max-w-2xl rounded-2xl border border-slate-200 bg-white p-7"
       >
         {error && (
@@ -133,10 +153,12 @@ function Editor({
           </div>
         )}
         <fieldset disabled={busy} className="space-y-5">
-          {fieldsFor(resource, !!id).map((field) => {
+          {fields.map((field) => {
             const value = initial[field.name];
             const common = {
-              name: field.name,
+              ...register(field.name),
+              "aria-invalid": !!errors[field.name],
+              "aria-describedby": errors[field.name] ? `${field.name}-error` : undefined,
               id: field.name,
               className: "field",
               required: field.required,
@@ -172,6 +194,7 @@ function Editor({
                     maxLength={field.maxLength}
                   />
                 )}
+                <FieldError name={field.name} message={errors[field.name]?.message} />
               </div>
             );
           })}
