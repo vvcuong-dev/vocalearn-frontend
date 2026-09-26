@@ -12,6 +12,7 @@ import {
 } from "react-router-dom";
 import { userApi } from "../../../lib/api";
 import { FormField } from "../../../components/ui/FormField";
+import { Loading } from "../../../components/ui/Loading";
 import { useUserAuth } from "../auth/context";
 export type UserAuthMode =
   | "login"
@@ -238,13 +239,20 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
                     </Link>
                   )}
                   <button className="primary" disabled={busy}>
-                    {busy
-                      ? "Đang xử lý…"
-                      : mode === "login"
-                        ? "Đăng nhập"
-                        : mode === "register"
-                          ? "Tạo tài khoản"
-                          : "Xác nhận"}
+                    {busy ? (
+                      <Loading
+                        inline
+                        label={
+                          mode === "login" ? "Đang đăng nhập…" : "Đang xử lý…"
+                        }
+                      />
+                    ) : mode === "login" ? (
+                      "Đăng nhập"
+                    ) : mode === "register" ? (
+                      "Tạo tài khoản"
+                    ) : (
+                      "Xác nhận"
+                    )}
                   </button>
                 </fieldset>
               </form>

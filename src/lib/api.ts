@@ -1,6 +1,5 @@
 export interface Tokens {
   accessToken: string;
-  refreshToken: string;
 }
 export interface Account {
   phone?: string | null;
@@ -66,7 +65,9 @@ async function request<T>(
   try {
     response = await fetch(`${baseUrl}${path}`, {
       method,
+      credentials: "include",
       headers: {
+        "X-CSRF-Protection": "1",
         ...(body && !(body instanceof FormData)
           ? { "Content-Type": "application/json" }
           : {}),
@@ -99,74 +100,122 @@ async function request<T>(
   return result.data as T;
 }
 
-function createClient(
-  key: string,
-  authPath: string,
-  expiredEvent: string,
-  allowRemember = false,
-) {
-  let persistent = false;
-  let tokens: Tokens | null = readTokens();
+function createClient(key: string, authPath: string, expiredEvent: string) {
+  // Remove legacy browser storage; refresh credentials now belong to HttpOnly cookies.
+  for (const storage of ["localStorage", "sessionStorage"] as const) {
+    try {
+      window[storage].removeItem(key);
+    } catch {
+      /* Storage may be disabled. */
+    }
+  }
+  let tokens: Tokens | null = null;
+  let sessionVersion = 0;
   let refreshPromise: Promise<Tokens> | null = null;
-  function isTokenPair(value: unknown): value is Tokens {
-    if (!value || typeof value !== "object") return false;
-    return (
-      "accessToken" in value &&
-      typeof value.accessToken === "string" &&
-      value.accessToken.trim().length > 0 &&
-      "refreshToken" in value &&
-      typeof value.refreshToken === "string" &&
-      value.refreshToken.trim().length > 0
-    );
-  }
-  function readTokens(): Tokens | null {
-    for (const remember of allowRemember ? [false, true] : [false]) {
-      try {
-        const storage = remember ? localStorage : sessionStorage;
-        const value = JSON.parse(storage.getItem(key) || "null");
-        if (isTokenPair(value)) {
-          persistent = remember;
-          return value;
-        }
-        storage.removeItem(key);
-      } catch {
-        // Storage can be unavailable in restricted browser contexts.
-      }
-    }
-    return null;
-  }
-  function setTokens(value: Tokens | null, remember = persistent) {
-    if (value !== null && !isTokenPair(value)) {
-      throw new Error(
-        "Máy chủ trả về token không hợp lệ. Vui lòng đăng nhập lại.",
-      );
-    }
-    const keep = allowRemember && remember;
-    if (value) {
-      (keep ? localStorage : sessionStorage).setItem(
-        key,
-        JSON.stringify(value),
-      );
-      if (keep) sessionStorage.removeItem(key);
-      else if (allowRemember) localStorage.removeItem(key);
-    } else {
-      sessionStorage.removeItem(key);
-      if (allowRemember) localStorage.removeItem(key);
-    }
+  const channel =
+    typeof window !== "undefined" && "BroadcastChannel" in window
+      ? new window.BroadcastChannel(key)
+      : null;
+  function setTokens(value: Tokens | null) {
+    if (
+      value !== null &&
+      (!value ||
+        typeof value.accessToken !== "string" ||
+        !value.accessToken.trim())
+    )
+      throw new Error("Invalid access token response");
     tokens = value;
-    persistent = value !== null && keep;
+    sessionVersion++;
   }
+  if (channel)
+    channel.onmessage = (event: MessageEvent<unknown>) => {
+      if (event.data !== "logout" && event.data !== "login") return;
+      setTokens(null);
+      window.dispatchEvent(
+        new Event(
+          event.data === "logout" ? expiredEvent : `${expiredEvent}-changed`,
+        ),
+      );
+    };
   function hasSession() {
     return tokens !== null;
   }
-  async function login(email: string, password: string, remember = false) {
-    const result = await api<{ tokens: Tokens }>(`${authPath}/login`, "POST", {
-      email,
-      password,
-    });
-    setTokens(result?.tokens, remember);
+  function locked<T>(action: () => Promise<T>) {
+    return typeof navigator !== "undefined" && navigator.locks
+      ? navigator.locks.request(`${key}.cookie`, action)
+      : action();
   }
-
+  function refresh(): Promise<Tokens> {
+    if (refreshPromise) return refreshPromise;
+    const version = sessionVersion;
+    const pending = locked(async () => {
+      if (version !== sessionVersion)
+        throw new ApiError(409, "Session changed");
+      try {
+        const next = await request<Tokens>(`${authPath}/refresh-token`, "POST");
+        if (version !== sessionVersion)
+          throw new ApiError(409, "Session changed");
+        if (
+          !next ||
+          typeof next.accessToken !== "string" ||
+          !next.accessToken.trim()
+        )
+          throw new Error("Invalid access token response");
+        tokens = { accessToken: next.accessToken };
+        return tokens;
+      } catch (error) {
+        if (
+          version === sessionVersion &&
+          error instanceof ApiError &&
+          error.status === 401
+        ) {
+          setTokens(null);
+          window.dispatchEvent(new Event(expiredEvent));
+        }
+        throw error;
+      }
+    });
+    const shared = pending.finally(() => {
+      if (refreshPromise === shared) refreshPromise = null;
+    });
+    refreshPromise = shared;
+    return shared;
+  }
+  async function restoreSession() {
+    if (tokens) return true;
+    try {
+      await refresh();
+      return true;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) return false;
+      throw error;
+    }
+  }
+  async function login(email: string, password: string, remember = true) {
+    await locked(async () => {
+      const result = await request<Tokens>(`${authPath}/login`, "POST", {
+        email,
+        password,
+        remember,
+      });
+      if (!result) throw new Error("Invalid access token response");
+      setTokens(result);
+      channel?.postMessage("login");
+    });
+  }
+  async function logout() {
+    await locked(async () => {
+      await request(
+        `${authPath}/logout`,
+        "POST",
+        undefined,
+        tokens?.accessToken,
+      );
+      setTokens(null);
+      channel?.postMessage("logout");
+      window.dispatchEvent(new Event(expiredEvent));
+    });
+  }
   async function api<T>(
     path: string,
     method = "GET",
@@ -174,69 +223,57 @@ function createClient(
     authenticated = false,
   ): Promise<T> {
     const original = tokens;
+    const version = sessionVersion;
+    const check = () => {
+      if (authenticated && version !== sessionVersion)
+        throw new ApiError(409, "Session changed");
+    };
     try {
-      return await request<T>(
+      const result = await request<T>(
         path,
         method,
         body,
         authenticated ? original?.accessToken : undefined,
       );
+      check();
+      return result;
     } catch (error) {
       if (
         !authenticated ||
         !(error instanceof ApiError) ||
         error.status !== 401 ||
-        !original
+        version !== sessionVersion
       )
         throw error;
-      // A concurrent request may already have rotated the token pair.
-      if (tokens && tokens !== original)
-        return request<T>(path, method, body, tokens.accessToken);
-      if (!refreshPromise) {
-        refreshPromise = (async () => {
-          try {
-            const next = await request<Tokens>(
-              `${authPath}/refresh-token`,
-              "POST",
-              { refreshToken: original.refreshToken },
-            );
-            if (tokens !== original)
-              throw new ApiError(401, "Phiên đăng nhập đã thay đổi.");
-            setTokens(next);
-            return next;
-          } catch (refreshError) {
-            if (
-              tokens === original &&
-              refreshError instanceof ApiError &&
-              [400, 401, 403, 404].includes(refreshError.status)
-            ) {
-              setTokens(null);
-              window.dispatchEvent(new Event(expiredEvent));
-            }
-            throw refreshError;
-          } finally {
-            refreshPromise = null;
-          }
-        })();
-      }
-      const next = await refreshPromise;
-      return request<T>(path, method, body, next.accessToken);
+      const next = tokens && tokens !== original ? tokens : await refresh();
+      check();
+      const result = await request<T>(path, method, body, next.accessToken);
+      check();
+      return result;
     }
   }
-
-  return { api, setTokens, hasSession, login };
+  return {
+    api,
+    setTokens,
+    hasSession,
+    login,
+    logout,
+    restoreSession,
+    getSessionVersion: () => sessionVersion,
+  };
 }
 const adminClient = createClient(
   "vocalearn.admin.session",
   "/admin/auth",
   "auth-expired",
 );
-export const { api, setTokens, hasSession } = adminClient;
+export const { api, setTokens, hasSession, getSessionVersion, restoreSession } =
+  adminClient;
 export const loginAdmin = adminClient.login;
+export const logoutAdmin = adminClient.logout;
 export const userClient = createClient(
   "vocalearn.user.session",
   "/auth",
   "user-auth-expired",
-  true,
 );
 export const userApi = userClient.api;

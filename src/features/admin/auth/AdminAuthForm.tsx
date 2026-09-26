@@ -7,6 +7,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "./context";
 import { api } from "../../../lib/api";
 import { FormField } from "../../../components/ui/FormField";
+import { Loading } from "../../../components/ui/Loading";
 import { titles, descriptions, type AuthMode } from "./auth-config";
 export function AdminAuthForm({ mode }: { mode: AuthMode }) {
   const { login, reload } = useAuth();
@@ -20,7 +21,15 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
     resolver: zodResolver(authSchema(mode, true)),
     mode: mode === "login" ? "onSubmit" : "onTouched",
     reValidateMode: "onChange",
-    defaultValues: { email: "", newEmail: "", password: "", oldPassword: "", name: "", newPassword: "", confirmPassword: "" },
+    defaultValues: {
+      email: "",
+      newEmail: "",
+      password: "",
+      oldPassword: "",
+      name: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
   });
   const newPassword = mode === "reset-password" || mode === "change-password";
   async function submit(data: FormValues) {
@@ -76,7 +85,11 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
     } catch (err) {
       const field = serverField(err, Object.keys(authSchema(mode, true).shape));
       if (field) {
-        methods.setError(field.name, { type: "server", message: field.message }, { shouldFocus: true });
+        methods.setError(
+          field.name,
+          { type: "server", message: field.message },
+          { shouldFocus: true },
+        );
         return;
       }
 
@@ -121,59 +134,70 @@ export function AdminAuthForm({ mode }: { mode: AuthMode }) {
       ) : (
         !(mode === "reset-password" && success) && (
           <FormProvider {...methods}>
-          <form noValidate onSubmit={methods.handleSubmit(submit)} className="space-y-5">
-            <fieldset disabled={busy} className="space-y-5">
-              {(mode === "login" || mode === "forgot-password") && (
-                <FormField name="email" label="Email" type="email" />
-              )}
-              {mode === "change-email" && (
-                <FormField name="newEmail" label="Email mới" type="email" />
-              )}
-              {(mode === "login" || mode === "change-email") && (
-                <FormField name="password" label="Mật khẩu" type="password" />
-              )}
-              {mode === "change-password" && (
-                <FormField
-                  name="oldPassword"
-                  label="Mật khẩu hiện tại"
-                  type="password"
-                />
-              )}
-              {newPassword && (
-                <>
+            <form
+              noValidate
+              onSubmit={methods.handleSubmit(submit)}
+              className="space-y-5"
+            >
+              <fieldset disabled={busy} className="space-y-5">
+                {(mode === "login" || mode === "forgot-password") && (
+                  <FormField name="email" label="Email" type="email" />
+                )}
+                {mode === "change-email" && (
+                  <FormField name="newEmail" label="Email mới" type="email" />
+                )}
+                {(mode === "login" || mode === "change-email") && (
+                  <FormField name="password" label="Mật khẩu" type="password" />
+                )}
+                {mode === "change-password" && (
                   <FormField
-                    name="newPassword"
-                    label="Mật khẩu mới"
+                    name="oldPassword"
+                    label="Mật khẩu hiện tại"
                     type="password"
-                    fresh
                   />
-                  <p className="text-xs leading-5 text-slate-500">
-                    8–72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
-                  </p>
-                  <FormField
-                    name="confirmPassword"
-                    label="Xác nhận mật khẩu mới"
-                    type="password"
-                    fresh
-                  />
-                </>
-              )}
-              {mode === "login" && (
-                <div className="text-right text-sm">
-                  <Link className="text-link" to="/admin/forgot-password">
-                    Quên mật khẩu?
-                  </Link>
-                </div>
-              )}
-              <button className="primary" disabled={busy} type="submit">
-                {busy
-                  ? "Đang xử lý…"
-                  : mode === "forgot-password"
-                    ? "Gửi link đặt lại mật khẩu"
-                    : titles[mode]}
-              </button>
-            </fieldset>
-          </form>
+                )}
+                {newPassword && (
+                  <>
+                    <FormField
+                      name="newPassword"
+                      label="Mật khẩu mới"
+                      type="password"
+                      fresh
+                    />
+                    <p className="text-xs leading-5 text-slate-500">
+                      8–72 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.
+                    </p>
+                    <FormField
+                      name="confirmPassword"
+                      label="Xác nhận mật khẩu mới"
+                      type="password"
+                      fresh
+                    />
+                  </>
+                )}
+                {mode === "login" && (
+                  <div className="text-right text-sm">
+                    <Link className="text-link" to="/admin/forgot-password">
+                      Quên mật khẩu?
+                    </Link>
+                  </div>
+                )}
+                <button className="primary" disabled={busy} type="submit">
+                  {busy ? (
+                    <Loading
+                      inline
+                      label={
+                        mode === "login" ? "Đang đăng nhập…" : "Đang xử lý…"
+                      }
+                    />
+                  ) : mode === "forgot-password" ? (
+                    "Gửi link đặt lại mật khẩu"
+                  ) : (
+                    titles[mode]
+                  )}
+                </button>
+              </fieldset>
+            </form>
           </FormProvider>
         )
       )}

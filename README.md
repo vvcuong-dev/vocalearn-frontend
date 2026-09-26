@@ -1,4 +1,4 @@
-﻿# VocaLearn Admin
+# VocaLearn Admin
 
 Frontend quản trị dùng React, TypeScript, Tailwind CSS và React Router. Giao diện auth dựa trên mẫu `project-1-admin` (nền SVG được sao chép vào `public/bg-account.svg`).
 
@@ -30,7 +30,7 @@ Khi deploy, đổi cả hai URL tương ứng domain thực tế, cấu hình `V
 - `/admin/change-password`, `/admin/change-email`: cập nhật thông tin đăng nhập.
 - Đăng xuất gọi API để thu hồi phiên; lỗi mạng được hiển thị để thử lại.
 
-Token admin lưu trong `sessionStorage`, giữ phiên khi reload trong cùng tab và xóa khi đóng tab. API client tự refresh khi gặp 401, gom các yêu cầu refresh đồng thời trong cùng tab, thử lại request một lần; refresh hết hạn đưa về đăng nhập. Không có đăng ký admin công khai. Backend vẫn là nơi kiểm tra quyền thực tế.
+Admin và user dùng refresh token trong cookie HttpOnly do BE đặt; access token chỉ giữ trong bộ nhớ FE. Không lưu token vào localStorage/sessionStorage. Khi mở tab hoặc reload, FE gọi refresh bằng cookie rồi tải hồ sơ; `/admin/login` chuyển về dashboard nếu phiên còn hợp lệ. Request dùng `credentials: include` và header `X-CSRF-Protection: 1`. Các tab phối hợp thao tác cookie bằng Web Locks nếu trình duyệt hỗ trợ; BroadcastChannel thông báo login/logout mà không truyền token.
 
 ## Kiểm tra
 
@@ -61,17 +61,17 @@ Kiểm tra tích hợp thủ công với tài khoản admin thật: đăng nhậ
 
 ## Chức năng quản trị
 
-| Đường dẫn | Chức năng |
-| --- | --- |
-| `/admin/users` | Danh sách, tìm kiếm, phân trang, tạo, xem/sửa, xóa mềm học viên |
-| `/admin/categories` | CRUD danh mục |
-| `/admin/learning-paths` | CRUD lộ trình; chọn danh mục, độ khó, hiển thị, thứ tự |
-| `/admin/word-sets` | CRUD bộ từ; chọn lộ trình khi tạo, cấu hình Pro, mở danh sách từ |
+| Đường dẫn                   | Chức năng                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `/admin/users`              | Danh sách, tìm kiếm, phân trang, tạo, xem/sửa, xóa mềm học viên                |
+| `/admin/categories`         | CRUD danh mục                                                                  |
+| `/admin/learning-paths`     | CRUD lộ trình; chọn danh mục, độ khó, hiển thị, thứ tự                         |
+| `/admin/word-sets`          | CRUD bộ từ; chọn lộ trình khi tạo, cấu hình Pro, mở danh sách từ               |
 | `/admin/words?wordSetId=ID` | Danh sách và CRUD từng từ, phiên âm, từ loại, nghĩa, ví dụ, audio URL, ghi chú |
-| `/admin/folders` | Tìm kiếm, xem chi tiết/bộ từ bên trong, ẩn/hiện thư mục |
-| `/admin/roles` | CRUD vai trò, xem và thay thế các quyền qua trang phân quyền |
-| `/admin/permissions` | Danh sách quyền nhóm theo module |
-| `/admin/profile` | Sửa họ tên/số điện thoại, tải avatar JPEG/PNG/WebP tối đa 5 MB |
+| `/admin/folders`            | Tìm kiếm, xem chi tiết/bộ từ bên trong, ẩn/hiện thư mục                        |
+| `/admin/roles`              | CRUD vai trò, xem và thay thế các quyền qua trang phân quyền                   |
+| `/admin/permissions`        | Danh sách quyền nhóm theo module                                               |
+| `/admin/profile`            | Sửa họ tên/số điện thoại, tải avatar JPEG/PNG/WebP tối đa 5 MB                 |
 
 Các thao tác xóa và thay đổi quyền có hộp thoại xác nhận. Chọn danh mục/lộ trình hỗ trợ tìm kiếm và phân trang. Backend quyết định quyền thực thi; FE hiển thị thông báo khi bị từ chối. API hiện không có endpoint cung cấp toàn bộ quyền của admin đang đăng nhập, nên các nút không được ẩn theo quyền từng tài khoản.
 
@@ -93,7 +93,9 @@ Flashcard dùng các từ trên trang hiện tại, không lưu lịch sử họ
 
 `src/features/user` chứa các trang, auth, component và payload riêng. HTTP client chia hai phiên `vocalearn.admin.session` và `vocalearn.user.session`, mỗi phiên có refresh token, hàng đợi refresh và sự kiện hết hạn riêng. Đăng xuất user không xóa phiên admin.
 
-Màn đăng nhập user có “Ghi nhớ đăng nhập trên thiết bị này”, mặc định bật: token lưu trong `localStorage` và được khôi phục khi mở lại web. Bỏ chọn sẽ chỉ lưu trong `sessionStorage`. Token được xoay qua `/auth/refresh-token` vẫn lưu theo lựa chọn ban đầu; đăng xuất hoặc refresh token không còn hợp lệ sẽ xóa phiên đã lưu. Thời hạn phiên do backend quyết định qua `JWT_REFRESH_EXPIRES_IN`, FE không kéo dài token đã hết hạn.
+Màn đăng nhập user có “Ghi nhớ đăng nhập trên thiết bị này”, mặc định bật: cookie có hạn dùng theo refresh token. Bỏ chọn thì BE đặt session cookie (không có Expires); refresh giữ nguyên lựa chọn này. Admin mặc định dùng cookie có hạn dùng. Đăng xuất thu hồi phiên và xóa cookie qua BE. Thời hạn do `JWT_REFRESH_EXPIRES_IN` quyết định.
+
+Sau khi nâng cấp từ phiên bản lưu token trong browser storage, cần khởi động lại BE và đăng nhập lại một lần. FE xóa các key token cũ, không chuyển chúng thành cookie. Local dùng cùng hostname cho FE/BE (ví dụ `localhost:5173` và `localhost:3000`). BE cần `CORS_ORIGINS` chứa chính xác origin FE và cho phép credentials. Khi production, cookie luôn bật Secure nên cần HTTPS. Nếu FE/BE khác site, cấu hình `AUTH_COOKIE_SAME_SITE=none` cùng `AUTH_COOKIE_SECURE=true`; trình duyệt vẫn có thể chặn third-party cookie, nên ưu tiên cùng site.
 
 Frontend sử dụng API backend hiện có. Trang thư mục cá nhân lọc bộ từ từ `/me/word-sets` theo thư mục; không có trang danh sách bộ từ riêng. API hiện chưa cung cấp danh sách bộ từ trong lộ trình hoặc thư mục của người khác, nên FE chưa hiển thị các danh sách này.
 
@@ -105,4 +107,3 @@ ADMIN_RESET_PASSWORD_URL=http://localhost:5173/admin/reset-password
 ```
 
 Khởi động lại backend sau khi cập nhật API hoặc biến môi trường. Cần database, Redis, mail worker và Cloudinary hoạt động để kiểm tra đầy đủ đăng nhập, email reset và avatar.
-
