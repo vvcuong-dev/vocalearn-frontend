@@ -4,7 +4,7 @@ import { Icon } from "../../../components/ui/Icon";
 export function PublicLayout() {
   const { user } = useUserAuth();
   return (
-    <div className="min-h-svh bg-[#fbfcf8] text-slate-800">
+    <div className="flex min-h-svh flex-col bg-[#fbfcf8] text-slate-800">
       <header className="border-b border-slate-200/70 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <Link
@@ -52,11 +52,11 @@ export function PublicLayout() {
           </nav>
         </div>
       </header>
-      <main>
+      <main className="flex-1">
         <Outlet />
       </main>
-      <footer className="border-t border-slate-200 px-5 py-8">
-        <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-4 text-sm text-slate-500">
+      <footer className="border-t border-slate-200 px-5 py-4">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 text-sm text-slate-500">
           <Link to="/" className="font-bold text-teal-700">
             VocaLearn
           </Link>

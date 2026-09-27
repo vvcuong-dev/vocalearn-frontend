@@ -41,7 +41,6 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
       : "/learn";
   const [params] = useSearchParams();
   const [busy, setBusy] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const token = params.get("token") || "";
@@ -74,7 +73,7 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
     setBusy(true);
     try {
       if (mode === "login") {
-        await login(values.email.trim(), values.password, remember);
+        await login(values.email.trim(), values.password);
         navigate(destination, { replace: true });
         return;
       }
@@ -218,17 +217,6 @@ export function UserAuthPage({ mode }: { mode: UserAuthMode }) {
                         fresh
                       />
                     </>
-                  )}
-                  {mode === "login" && (
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={remember}
-                        onChange={(event) => setRemember(event.target.checked)}
-                        className="h-4 w-4 accent-teal-700"
-                      />
-                      Ghi nhớ đăng nhập trên thiết bị này
-                    </label>
                   )}
                   {mode === "login" && (
                     <Link

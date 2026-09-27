@@ -55,7 +55,7 @@ function UserLogin() {
   return (
     <button
       onClick={() =>
-        void login("user@example.com", "Pass@123", true).catch(() => {})
+        void login("user@example.com", "Pass@123").catch(() => {})
       }
     >
       {user ? user.name : "Login"}

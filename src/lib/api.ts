@@ -196,7 +196,7 @@ function createClient(key: string, authPath: string, expiredEvent: string) {
       const result = await request<Tokens>(`${authPath}/login`, "POST", {
         email,
         password,
-        remember,
+        ...(authPath === "/admin/auth" ? { remember } : {}),
       });
       if (!result) throw new Error("Invalid access token response");
       setTokens(result);

@@ -129,10 +129,10 @@ test("user login and expiry are isolated from admin", async () => {
   const c = await client();
   c.setTokens({ accessToken: "admin" });
   globalThis.fetch = async (_, options) => {
-    assert.equal(JSON.parse(options.body).remember, false);
+    assert.equal(JSON.parse(options.body).remember, undefined);
     return response(200, { accessToken: "user" });
   };
-  await c.userClient.login("user@example.com", "Pass@123", false);
+  await c.userClient.login("user@example.com", "Pass@123");
   globalThis.fetch = async () => response(401, {});
   await assert.rejects(c.userApi("/me/profile", "GET", undefined, true));
   assert.equal(c.userClient.hasSession(), false);

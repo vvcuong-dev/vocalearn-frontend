@@ -1,5 +1,5 @@
 import { Loading } from "../../../components/ui/Loading";
-import { useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import {
   userApi as api,
   userClient,
@@ -60,8 +60,8 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener("user-auth-expired", expired);
     };
   }, [attempt]);
-  async function login(email: string, password: string, remember = false) {
-    await userClient.login(email, password, remember);
+  async function login(email: string, password: string) {
+    await userClient.login(email, password);
     const version = userClient.getSessionVersion();
     try {
       await reload();
@@ -113,7 +113,9 @@ export function UserAuthProvider({ children }: { children: ReactNode }) {
     );
   return (
     <UserAuthContext.Provider value={{ user, login, logout, reload }}>
-      {children}
+      <Suspense fallback={<Loading fullPage />}>
+        {children}
+      </Suspense>
     </UserAuthContext.Provider>
   );
 }
