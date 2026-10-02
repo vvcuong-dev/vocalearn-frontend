@@ -1,10 +1,11 @@
 ﻿import { Link, Outlet } from "react-router-dom";
 import { useUserAuth } from "../auth/context";
 import { Icon } from "../../../components/ui/Icon";
+import { ThemeToggle } from "../../../components/ui/ThemeToggle";
 export function PublicLayout() {
   const { user } = useUserAuth();
   return (
-    <div className="flex min-h-svh flex-col bg-[#fbfcf8] text-slate-800">
+    <div className="public-layout flex min-h-svh flex-col">
       <header className="border-b border-slate-200/70 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-5 py-5">
           <Link
@@ -29,6 +30,7 @@ export function PublicLayout() {
             <a href="/#start" className="hidden hover:text-teal-700 sm:block">
               Bắt đầu
             </a>
+            <ThemeToggle />
             {user ? (
               <Link
                 to="/learn"

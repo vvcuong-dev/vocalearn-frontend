@@ -1,15 +1,16 @@
-import { Link } from 'react-router-dom'
-import { Icon } from '../ui/Icon'
+import { Link } from "react-router-dom";
+import { Icon } from "../ui/Icon";
+import { ThemeToggle } from "../ui/ThemeToggle";
 export function Header({
   name,
   title,
   profilePath,
   onMenu,
 }: {
-  name: string
-  title: string
-  profilePath: string
-  onMenu: () => void
+  name: string;
+  title: string;
+  profilePath: string;
+  onMenu: () => void;
 }) {
   return (
     <header className="flex h-20 items-center justify-between gap-4 border-b border-slate-200/70 bg-white px-5 sm:px-8">
@@ -27,17 +28,20 @@ export function Header({
           <span className="font-semibold text-slate-700">{title}</span>
         </p>
       </div>
-      <Link
-        to={profilePath}
-        className="flex shrink-0 items-center gap-3 rounded-lg p-1 focus-visible:outline-brand"
-      >
-        <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 font-bold text-brand">
-          {name.trim().charAt(0).toUpperCase() || 'A'}
-        </span>
-        <span className="hidden max-w-44 truncate text-sm font-semibold sm:block">
-          {name}
-        </span>
-      </Link>
+      <div className="flex items-center gap-3">
+        <ThemeToggle />
+        <Link
+          to={profilePath}
+          className="flex shrink-0 items-center gap-3 rounded-lg p-1 focus-visible:outline-brand"
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-blue-50 font-bold text-brand">
+            {name.trim().charAt(0).toUpperCase() || "A"}
+          </span>
+          <span className="hidden max-w-44 truncate text-sm font-semibold sm:block">
+            {name}
+          </span>
+        </Link>
+      </div>
     </header>
-  )
+  );
 }

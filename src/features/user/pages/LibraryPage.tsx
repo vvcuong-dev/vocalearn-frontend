@@ -16,14 +16,14 @@ export function LibraryPage() {
   return (
     <>
       <PageHeading
-        title="Thư viện của tôi"
+        title="Bộ từ vựng"
         description="Sắp xếp những điều bạn muốn ghi nhớ vào từng góc nhỏ."
         action={
-          <div className="flex gap-2">
+          <div className="library-actions flex flex-wrap gap-2">
             <Link className="secondary" to="/learn/folders/new">
               Tạo thư mục
             </Link>
-            <Link className="secondary" to="/learn/word-sets/new">
+            <Link className="primary w-auto!" to="/learn/word-sets/new">
               Tạo bộ từ
             </Link>
           </div>

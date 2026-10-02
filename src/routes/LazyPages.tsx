@@ -84,6 +84,12 @@ export const WordSetPage = lazy(() =>
   })),
 );
 
+export const VocabularyPage = lazy(() =>
+  import("../features/user/pages/VocabularyPage").then((module) => ({
+    default: module.VocabularyPage,
+  })),
+);
+
 export const UserEditorPage = lazy(() =>
   import("../features/user/pages/UserEditorPage").then((module) => ({
     default: module.UserEditorPage,

@@ -6,6 +6,7 @@ import {
   LibraryPage,
   FolderPage,
   WordSetPage,
+  VocabularyPage,
   UserEditorPage,
   UserProfilePage,
 } from "./LazyPages";
@@ -31,12 +32,17 @@ export const userRoutes = (
       <Route path="library" element={<LibraryPage />} />
       <Route path="folders/:id" element={<FolderPage />} />
       <Route path="word-sets/:id" element={<WordSetPage />} />
+      <Route path="words" element={<VocabularyPage />} />
       {(["folders", "word-sets", "words"] as const).map((resource) => (
         <Fragment key={resource}>
           <Route
             path={`${resource}/new`}
             element={
-              <UserEditorPage key={`${resource}-new`} resource={resource} />
+              resource === "words" ? (
+                <VocabularyPage add />
+              ) : (
+                <UserEditorPage key={`${resource}-new`} resource={resource} />
+              )
             }
           />
           <Route

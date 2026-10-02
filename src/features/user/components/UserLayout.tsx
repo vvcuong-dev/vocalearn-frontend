@@ -19,6 +19,12 @@ const items: NavigationItem[] = [
     section: "Học mỗi ngày",
   },
   {
+    to: "/learn/words",
+    label: "Từ vựng",
+    icon: "book",
+    section: "Học mỗi ngày",
+  },
+  {
     to: "/learn/profile",
     label: "Hồ sơ cá nhân",
     icon: "users",

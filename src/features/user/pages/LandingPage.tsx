@@ -35,11 +35,11 @@ export function LandingPage() {
             Lộ trình rõ ràng · Thư viện riêng · Ôn tập bằng thẻ từ
           </p>
         </div>
-        <div className="min-w-0 rounded-[2.5rem] bg-[#e5eee2] px-7 py-8 sm:px-12 sm:py-10">
+        <div className="landing-illustration min-w-0 rounded-[2.5rem] px-7 py-8 sm:px-12 sm:py-10">
           <p className="mb-10 text-right text-xs font-bold tracking-widest text-teal-800">
             A LITTLE EVERY DAY
           </p>
-          <div className="-rotate-2 rounded-3xl border border-white bg-white p-5 shadow-xl shadow-teal-950/10 sm:rotate-[-4deg] sm:p-9">
+          <div className="landing-word-card -rotate-2 rounded-3xl border border-white bg-white p-5 shadow-xl shadow-teal-950/10 sm:rotate-[-4deg] sm:p-9">
             <div className="flex items-center justify-between text-xs text-slate-400">
               <span>THẺ TỪ MINH HỌA</span>
               <Icon name="book" />
@@ -50,7 +50,7 @@ export function LandingPage() {
             <p className="mt-3 text-sm text-teal-700">
               /ˌser.ənˈdɪp.ə.ti/ · danh từ
             </p>
-            <div className="my-6 h-px bg-slate-100" />
+            <div className="landing-card-divider my-6 h-px bg-slate-100" />
             <p className="text-lg font-semibold">
               Một điều tốt đẹp đến bất ngờ.
             </p>

@@ -15,7 +15,7 @@ export function LibraryCards({ items }: { items: LibraryItem[] }) {
           <Link
             key={`${item.type}:${item.data.id}`}
             to={`/learn/${item.type === "folder" ? "folders" : "word-sets"}/${item.data.id}`}
-            className="rounded-2xl border border-slate-200 bg-white p-6 hover:border-teal-400"
+            className={`library-card ${item.type === "folder" ? "library-folder" : ""} rounded-2xl border border-slate-200 bg-white p-6 hover:border-teal-400`}
           >
             <span className="inline-flex rounded-xl bg-teal-50 p-3 text-teal-700">
               <Icon name={item.type === "folder" ? "folder" : "book"} />

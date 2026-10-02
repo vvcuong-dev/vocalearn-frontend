@@ -67,7 +67,7 @@ export function ResourceTable({
     );
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-145 text-left text-sm">
+      <table className="admin-resource-table w-full min-w-145 text-left text-sm">
         <caption className="sr-only">
           Danh sách {config.title.toLowerCase()}
         </caption>
