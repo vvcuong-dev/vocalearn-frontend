@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { DictionaryField } from "./DictionaryField";
 import { userApi } from "../../../lib/api";
 import { Icon } from "../../../components/ui/Icon";
 import { useUserQuery } from "../useUserQuery";
@@ -12,14 +13,7 @@ type Draft = {
   partOfSpeech: string;
   example: string;
   note: string;
-};
-type Suggestion = {
-  id: number;
-  term: string;
-  phonetic: string | null;
-  meaning: string | null;
-  partOfSpeech: string | null;
-  example: string | null;
+  audioUrl: string;
 };
 const empty = (key: number): Draft => ({
   key,
@@ -29,108 +23,9 @@ const empty = (key: number): Draft => ({
   partOfSpeech: "",
   example: "",
   note: "",
+  audioUrl: "",
 });
 const types = ["N", "V", "ADJ", "ADV", "PHRASE", "IDIOM"];
-
-function TermInput({
-  row,
-  index,
-  update,
-}: {
-  row: Draft;
-  index: number;
-  update: (patch: Partial<Draft>) => void;
-}) {
-  const [focused, setFocused] = useState(false);
-  const [result, setResult] = useState<{
-    query: string;
-    items: Suggestion[];
-    error?: boolean;
-  }>();
-  const query = row.term.trim();
-  useEffect(() => {
-    if (!focused || !query) return;
-    let active = true;
-    const timer = setTimeout(() => {
-      userApi<Suggestion[]>(
-        `/dictionary/suggest?q=${encodeURIComponent(query)}`,
-        "GET",
-        undefined,
-        true,
-      ).then(
-        (items) => {
-          if (active) setResult({ query, items });
-        },
-        () => {
-          if (active) setResult({ query, items: [], error: true });
-        },
-      );
-    }, 300);
-    return () => {
-      active = false;
-      clearTimeout(timer);
-    };
-  }, [query, focused]);
-  return (
-    <div
-      className="relative"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget))
-          setFocused(false);
-      }}
-    >
-      <input
-        className="field"
-        aria-label={`Từ vựng dòng ${index + 1}`}
-        placeholder="Nhập từ tiếng Anh"
-        maxLength={191}
-        value={row.term}
-        onFocus={() => setFocused(true)}
-        onChange={(event) => update({ term: event.target.value })}
-        autoComplete="off"
-        onKeyDown={(event) => {
-          if (event.key === "Escape") {
-            event.stopPropagation();
-            setFocused(false);
-          }
-        }}
-      />
-      {focused && query && (
-        <div className="dictionary-suggestions" aria-label="Gợi ý từ điển">
-          {result?.query !== query ? (
-            <p>Đang tìm từ…</p>
-          ) : result.error ? (
-            <p>Chưa tải được gợi ý. Bạn vẫn có thể nhập thủ công.</p>
-          ) : !result.items.length ? (
-            <p>Không có gợi ý. Hãy nhập nghĩa bên cạnh.</p>
-          ) : (
-            result.items.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  update({
-                    term: item.term,
-                    phonetic: item.phonetic || "",
-                    meaning: item.meaning || "",
-                    partOfSpeech: item.partOfSpeech || "",
-                    example: item.example || "",
-                  });
-                  setFocused(false);
-                }}
-              >
-                <strong>{item.term}</strong>
-                <span>
-                  {item.partOfSpeech} · {item.meaning || "Chưa có nghĩa"}
-                </span>
-              </button>
-            ))
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function BulkWordDialog({
   wordSetId,
@@ -216,13 +111,22 @@ export function BulkWordDialog({
         {
           wordSetId: target,
           words: populated.map(
-            ({ term, phonetic, meaning, partOfSpeech, example, note }) => ({
+            ({
+              term,
+              phonetic,
+              meaning,
+              partOfSpeech,
+              example,
+              note,
+              audioUrl,
+            }) => ({
               term: term.trim(),
               meaning: meaning.trim(),
               phonetic: phonetic.trim() || null,
               partOfSpeech: partOfSpeech || null,
               example: example.trim() || null,
               note: note.trim() || null,
+              audioUrl: audioUrl || null,
             }),
           ),
         },
@@ -254,7 +158,8 @@ export function BulkWordDialog({
               Thêm từ vựng
             </h2>
             <p className="mt-1 text-xs text-slate-500">
-              Chọn gợi ý từ điển hoặc nhập thủ công, rồi chỉnh sửa trước khi lưu.
+              Chọn gợi ý từ điển hoặc nhập thủ công, rồi chỉnh sửa trước khi
+              lưu.
             </p>
           </div>
           <button
@@ -368,7 +273,13 @@ export function BulkWordDialog({
                     <tr key={row.key}>
                       <td>{index + 1}</td>
                       <td>
-                        <TermInput row={row} index={index} update={update} />
+                        <DictionaryField
+                          field="term"
+                          term={row.term}
+                          value={row.term}
+                          index={index}
+                          onChange={(term) => update({ term, audioUrl: "" })}
+                        />
                       </td>
                       {(
                         [
@@ -394,19 +305,28 @@ export function BulkWordDialog({
                                 <option key={type}>{type}</option>
                               ))}
                             </select>
+                          ) : field !== "note" ? (
+                            <DictionaryField
+                              field={field}
+                              term={row.term}
+                              value={row[field]}
+                              index={index}
+                              onChange={(value, audioUrl) =>
+                                update({
+                                  [field]: value,
+                                  ...(field === "phonetic" && audioUrl !== undefined
+                                    ? { audioUrl: audioUrl || "" }
+                                    : {}),
+                                })
+                              }
+                            />
                           ) : (
                             <input
                               className="field"
-                              aria-label={`${field === "meaning" ? "Nghĩa" : field === "phonetic" ? "Phiên âm" : field === "example" ? "Ví dụ" : "Ghi chú"} dòng ${index + 1}`}
-                              placeholder={
-                                field === "meaning"
-                                  ? "Nghĩa tiếng Việt"
-                                  : field === "phonetic"
-                                    ? "/…/"
-                                    : "Không bắt buộc"
-                              }
+                              aria-label={`Ghi chú dòng ${index + 1}`}
+                              placeholder="Không bắt buộc"
                               value={row[field]}
-                              maxLength={field === "phonetic" ? 191 : 10000}
+                              maxLength={10000}
                               onChange={(event) =>
                                 update({ [field]: event.target.value })
                               }

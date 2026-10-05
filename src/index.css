@@ -49,7 +49,9 @@ html[data-theme="dark"] .admin-resource-table tbody > tr:hover {
 html[data-theme="dark"] .admin-resource-table td.text-slate-700 {
   color: #e2e8f0;
 }
-html[data-theme="dark"] .admin-resource-table :is(.bg-emerald-50, .bg-amber-50, .bg-blue-50, .bg-slate-100) {
+html[data-theme="dark"]
+  .admin-resource-table
+  :is(.bg-emerald-50, .bg-amber-50, .bg-blue-50, .bg-slate-100) {
   display: inline-flex;
   align-items: center;
   border: 1px solid transparent;
@@ -331,11 +333,9 @@ html[data-theme="dark"] .library-folder {
 }
 .bulk-table-scroll {
   overflow: auto;
-  padding: 12px 16px 8px;
+  /* Reserve suggestion space so opening a menu does not resize the dialog. */
+  padding: 12px 16px 205px;
   max-height: 55svh;
-}
-.bulk-table-scroll:has(.dictionary-suggestions) {
-  padding-bottom: 205px;
 }
 .bulk-word-dialog header,
 .bulk-word-dialog footer {
@@ -428,6 +428,20 @@ html[data-theme="dark"] .library-folder {
 .dictionary-suggestions p {
   padding: 12px;
   font-size: 12px;
+}
+.dictionary-field-suggestions {
+  width: max(100%, 180px);
+  max-width: 320px;
+  font-size: 13px;
+}
+.dictionary-field-suggestions button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.dictionary-field-suggestions button[aria-selected="true"] {
+  background: var(--canvas);
+  outline: 2px solid #14b8a6;
+  outline-offset: -2px;
 }
 @media (max-width: 640px) {
   .bulk-word-dialog {
